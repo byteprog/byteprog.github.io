@@ -18,15 +18,15 @@
   
   
   <title>MySQL必知必会笔记 | 乱涂乱画的小站</title>
-  <meta name="description" content="[TOC] 笔记整理者： Graffitist(&amp;#x67;&amp;#x72;&amp;#x61;&amp;#102;&amp;#x66;&amp;#105;&amp;#116;&amp;#105;&amp;#100;&amp;#x65;&amp;#x66;&amp;#64;&amp;#103;&amp;#109;&amp;#97;&amp;#x69;&amp;#x6c;&amp;#x2e;&amp;#x63;&amp;#111;&amp;#109;)基础知识与命令表名：相同数据库中不能两次使用相同的表明、不同的数据库中可以 列: 表中的一个字段、所有">
+  <meta name="description" content="[TOC] 笔记整理者： Graffitist(&amp;#103;&amp;#114;&amp;#x61;&amp;#x66;&amp;#x66;&amp;#105;&amp;#116;&amp;#x69;&amp;#x64;&amp;#x65;&amp;#102;&amp;#x40;&amp;#x67;&amp;#x6d;&amp;#97;&amp;#x69;&amp;#108;&amp;#x2e;&amp;#x63;&amp;#111;&amp;#109;)基础知识与命令表名：相同数据库中不能两次使用相同的表明、不同的数据库中可以 列: 表中的一个字段、所">
 <meta property="og:type" content="article">
 <meta property="og:title" content="MySQL必知必会笔记">
 <meta property="og:url" content="http://www.postman.life/2020/11/17/MySQL%E5%BF%85%E7%9F%A5%E5%BF%85%E4%BC%9A%E7%AC%94%E8%AE%B0/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="[TOC] 笔记整理者： Graffitist(&amp;#x67;&amp;#x72;&amp;#x61;&amp;#102;&amp;#x66;&amp;#105;&amp;#116;&amp;#105;&amp;#100;&amp;#x65;&amp;#x66;&amp;#64;&amp;#103;&amp;#109;&amp;#97;&amp;#x69;&amp;#x6c;&amp;#x2e;&amp;#x63;&amp;#111;&amp;#109;)基础知识与命令表名：相同数据库中不能两次使用相同的表明、不同的数据库中可以 列: 表中的一个字段、所有">
+<meta property="og:description" content="[TOC] 笔记整理者： Graffitist(&amp;#103;&amp;#114;&amp;#x61;&amp;#x66;&amp;#x66;&amp;#105;&amp;#116;&amp;#x69;&amp;#x64;&amp;#x65;&amp;#102;&amp;#x40;&amp;#x67;&amp;#x6d;&amp;#97;&amp;#x69;&amp;#108;&amp;#x2e;&amp;#x63;&amp;#111;&amp;#109;)基础知识与命令表名：相同数据库中不能两次使用相同的表明、不同的数据库中可以 列: 表中的一个字段、所">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2020-11-17T14:39:02.463Z">
-<meta property="article:modified_time" content="2020-11-22T08:41:43.682Z">
+<meta property="article:modified_time" content="2020-11-22T08:44:32.554Z">
 <meta property="article:author" content="John Doe">
 <meta name="twitter:card" content="summary">
   <!-- Canonical links -->
@@ -327,7 +327,7 @@
     <div class="article-entry marked-body" itemprop="articleBody">
       
         <p>[TOC]</p>
-<h2 id="笔记整理者：-Graffitist-x67-x72-x61-102-x66-105-116-105-100-x65-x66-64-103-109-97-x69-x6c-x2e-x63-111-109"><a href="#笔记整理者：-Graffitist-x67-x72-x61-102-x66-105-116-105-100-x65-x66-64-103-109-97-x69-x6c-x2e-x63-111-109" class="headerlink" title="笔记整理者： Graffitist(&#x67;&#x72;&#x61;&#102;&#x66;&#105;&#116;&#105;&#100;&#x65;&#x66;&#64;&#103;&#109;&#97;&#x69;&#x6c;&#x2e;&#x63;&#111;&#109;)"></a>笔记整理者： Graffitist(<a href="mailto:&#x67;&#x72;&#x61;&#102;&#x66;&#105;&#116;&#105;&#100;&#x65;&#x66;&#64;&#103;&#109;&#97;&#x69;&#x6c;&#x2e;&#x63;&#111;&#109;">&#x67;&#x72;&#x61;&#102;&#x66;&#105;&#116;&#105;&#100;&#x65;&#x66;&#64;&#103;&#109;&#97;&#x69;&#x6c;&#x2e;&#x63;&#111;&#109;</a>)</h2><h2 id="基础知识与命令"><a href="#基础知识与命令" class="headerlink" title="基础知识与命令"></a>基础知识与命令</h2><p><strong>表名</strong>：相同数据库中不能两次使用相同的表明、不同的数据库中可以</p>
+<h2 id="笔记整理者：-Graffitist-103-114-x61-x66-x66-105-116-x69-x64-x65-102-x40-x67-x6d-97-x69-108-x2e-x63-111-109"><a href="#笔记整理者：-Graffitist-103-114-x61-x66-x66-105-116-x69-x64-x65-102-x40-x67-x6d-97-x69-108-x2e-x63-111-109" class="headerlink" title="笔记整理者： Graffitist(&#103;&#114;&#x61;&#x66;&#x66;&#105;&#116;&#x69;&#x64;&#x65;&#102;&#x40;&#x67;&#x6d;&#97;&#x69;&#108;&#x2e;&#x63;&#111;&#109;)"></a>笔记整理者： Graffitist(<a href="mailto:&#103;&#114;&#x61;&#x66;&#x66;&#105;&#116;&#x69;&#x64;&#x65;&#102;&#x40;&#x67;&#x6d;&#97;&#x69;&#108;&#x2e;&#x63;&#111;&#109;">&#103;&#114;&#x61;&#x66;&#x66;&#105;&#116;&#x69;&#x64;&#x65;&#102;&#x40;&#x67;&#x6d;&#97;&#x69;&#108;&#x2e;&#x63;&#111;&#109;</a>)</h2><h2 id="基础知识与命令"><a href="#基础知识与命令" class="headerlink" title="基础知识与命令"></a>基础知识与命令</h2><p><strong>表名</strong>：相同数据库中不能两次使用相同的表明、不同的数据库中可以</p>
 <p><strong>列</strong>: 表中的一个字段、所有表都是由一个或多个列组成</p>
 <p><strong>数据类型</strong>：  所容许的数据的类型，每个表列都有相应的数据类型</p>
 <p><strong>行</strong>：表中的一行记录</p>
