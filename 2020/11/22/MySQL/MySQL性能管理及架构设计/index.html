@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>MySQL性能管理及架构设计 | 乱涂乱画的小站</title>
+  <meta name="description" content="[TOC] 什么情况会影响数据库性能大量的并发和超高的CPU使用率 磁盘IO 网卡流量 大表  记录行数巨大，单表超过千万行 表数据文件巨大，表数据文件超过10G  大表对DDL操作的影响(风险) 建立索引需要很长的时间   MySQL版本&lt;5.5建立索引会锁表 MySQL版本&gt;&#x3D; 5.5虽然不会锁表但会引起主从延迟   修改表结构需要长时间锁表   会造成长时间的主从延迟  影响正常">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL性能管理及架构设计">
+<meta property="og:url" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="[TOC] 什么情况会影响数据库性能大量的并发和超高的CPU使用率 磁盘IO 网卡流量 大表  记录行数巨大，单表超过千万行 表数据文件巨大，表数据文件超过10G  大表对DDL操作的影响(风险) 建立索引需要很长的时间   MySQL版本&lt;5.5建立索引会锁表 MySQL版本&gt;&#x3D; 5.5虽然不会锁表但会引起主从延迟   修改表结构需要长时间锁表   会造成长时间的主从延迟  影响正常">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115233338353.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115234415353.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/1540950-20190619114241029-347701365.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201116001908090.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201116231727439.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118225058397.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118225902601.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118230005822.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231005355.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231428018.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231605731.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118233855991.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118234222867.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121142115076.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121152052474.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121185928483.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214258019.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214434572.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214632210.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214734130.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121215433429.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121220344809.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121220610514.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122134903805.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122135545316.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122142052357.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122142103831.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122150907373.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122155903133.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160211676.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160318685.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160453314.png">
+<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122161248973.png">
+<meta property="article:published_time" content="2020-11-22T08:28:38.000Z">
+<meta property="article:modified_time" content="2020-11-22T08:34:29.638Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115233338353.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/byteprog" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Graffitist</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Developer &amp; Shutterbug</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Suzhou, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-books">
+          <a href="/books">
+            
+            <i class="icon icon-book-fill"></i>
+            
+            <span class="menu-title">Books</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/byteprog" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="http://weibo.com/" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
+        
+        <li><a href="https://twitter.com/" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
+        
+        <li><a href="https://www.behance.net/" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+
+    
+      
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Archive</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a><span class="archive-list-count">2</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/" class="title">MySQL性能管理及架构设计</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-11-22T08:28:38.000Z" itemprop="datePublished">2020-11-22</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2020/11/17/hello-world/" class="title">Hello World</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-11-17T14:39:02.458Z" itemprop="datePublished">2020-11-17</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-MySQL/MySQL性能管理及架构设计" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      MySQL性能管理及架构设计
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/" class="article-date">
+	  <time datetime="2020-11-22T08:28:38.000Z" itemprop="datePublished">2020-11-22</time>
+	</a>
+</span>
+        
+        
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/#comments" class="article-comment-link">Comments</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <p>[TOC]</p>
+<h2 id="什么情况会影响数据库性能"><a href="#什么情况会影响数据库性能" class="headerlink" title="什么情况会影响数据库性能"></a>什么情况会影响数据库性能</h2><p>大量的并发和超高的CPU使用率</p>
+<p>磁盘IO</p>
+<p>网卡流量</p>
+<p>大表</p>
+<ul>
+<li>记录行数巨大，单表超过千万行</li>
+<li>表数据文件巨大，表数据文件超过10G</li>
+</ul>
+<h4 id="大表对DDL操作的影响-风险"><a href="#大表对DDL操作的影响-风险" class="headerlink" title="大表对DDL操作的影响(风险)"></a>大表对DDL操作的影响(风险)</h4><ol>
+<li><strong>建立索引需要很长的时间</strong></li>
+</ol>
+<ul>
+<li>MySQL版本&lt;5.5建立索引会锁表</li>
+<li>MySQL版本&gt;= 5.5虽然不会锁表但会引起主从延迟</li>
+</ul>
+<ol start="2">
+<li><strong>修改表结构需要长时间锁表</strong></li>
+</ol>
+<ul>
+<li><p>会造成长时间的主从延迟</p>
+</li>
+<li><p>影响正常的数据操作</p>
+</li>
+</ul>
+<p><strong>如何处理数据库中的大表</strong></p>
+<ol>
+<li><strong>分库分表把一张大表分成多个小表</strong></li>
+</ol>
+<p>难点：</p>
+<ul>
+<li><p>分表主键的选择</p>
+</li>
+<li><p>分表后跨分区数据的查询和统计</p>
+</li>
+</ul>
+<ol start="2">
+<li><strong>大表的历史数据归档 - 减少对前后端业务的影响</strong></li>
+</ol>
+<p>难点：</p>
+<ul>
+<li>归档时间点的选择</li>
+<li>如何进行归档操作</li>
+</ul>
+<h4 id="什么是大事务-大事务带来的问题"><a href="#什么是大事务-大事务带来的问题" class="headerlink" title="什么是大事务 - 大事务带来的问题"></a>什么是大事务 - 大事务带来的问题</h4><p><strong>定义∶</strong></p>
+<p>​    运行时间比较长，操作的数据比较多的事务</p>
+<p><strong>风险:</strong></p>
+<p>​    锁定太多的数据，造成大量的阻塞和锁超时</p>
+<p>​    回滚时所需要时间比较长</p>
+<p>​    执行时间长，容易造成主从延迟</p>
+<h5 id="如何处理大事务"><a href="#如何处理大事务" class="headerlink" title="如何处理大事务"></a>如何处理大事务</h5><ol>
+<li>避免一次处理太多的数据</li>
+<li>移除不必要在事务中的SELECT操作</li>
+</ol>
+<h4 id="什么影响了MySQL性能"><a href="#什么影响了MySQL性能" class="headerlink" title="什么影响了MySQL性能"></a>什么影响了MySQL性能</h4><ol>
+<li>服务器硬件（CPU、内存等）</li>
+<li>服务器系统</li>
+<li>数据库存储引擎的选择</li>
+<li><strong>数据库参数配置</strong></li>
+<li><strong>数据库结构设计和SQL语句</strong>(表结构设计、SQL语句的编写和优化)</li>
+</ol>
+<h5 id="CPU资源和可用内存大小"><a href="#CPU资源和可用内存大小" class="headerlink" title="CPU资源和可用内存大小"></a>CPU资源和可用内存大小</h5><p>如何选择CPU？</p>
+<ol>
+<li>我们的应用是CPU密集型的吗？</li>
+<li>我们系统的并发量如何？</li>
+</ol>
+<p>衡量数据库处理能力的指标：QPS（每秒处理SQL的数量）</p>
+<p>WEB类应用：核心数量比频率重要</p>
+<p>使用正确的服务器版本（64位操作系统使用64位服务器版本）</p>
+<p>内存越多越好，但对性能影响有限。无限增加内存不是银弹</p>
+<p>缓存可以把多个写入加载到内存然后一次写入到磁盘</p>
+<h5 id="磁盘的配置和选择"><a href="#磁盘的配置和选择" class="headerlink" title="磁盘的配置和选择"></a>磁盘的配置和选择</h5><p><strong>使用传统机器硬盘：</strong></p>
+<ol>
+<li>存储容量</li>
+<li>传输速度</li>
+<li>访问时间</li>
+<li>主轴转速</li>
+<li>物理尺寸</li>
+</ol>
+<p>多个容量较小的磁盘组成一组容量更大的磁盘</p>
+<p><strong>使用RAID（磁盘冗余队列）增强传统机器硬盘的性能：</strong></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115233338353.png" alt="image-20201115233338353"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115234415353.png" alt="image-20201115234415353"></p>
+<p>使用固态存储SSD和PCIe卡：</p>
+<ol>
+<li>更好的随机读写性能</li>
+<li>更好的支持并发</li>
+</ol>
+<p><strong>使用场景</strong>：</p>
+<ol>
+<li>存在于大量随机I/O的场景</li>
+<li>使用于结局单线程负载的I/O瓶颈</li>
+</ol>
+<p><strong>使用网络存储NAS和SAN：</strong></p>
+<p><strong>网络存储使用的场景</strong></p>
+<ol>
+<li>数据库备份</li>
+</ol>
+<h5 id="操作系统对性能的影响"><a href="#操作系统对性能的影响" class="headerlink" title="操作系统对性能的影响"></a>操作系统对性能的影响</h5><p>适合的操作系统</p>
+<ol>
+<li>Window</li>
+<li>FreeBSD</li>
+<li>Solaris</li>
+<li>Linux</li>
+</ol>
+<h6 id="Centos系统参数优化"><a href="#Centos系统参数优化" class="headerlink" title="Centos系统参数优化"></a>Centos系统参数优化</h6><p><strong>内核相关参数（/etc/sysctl.conf）</strong></p>
+<p>网络层：</p>
+<ul>
+<li>net.core.somaxconn=65535</li>
+<li>net.core.netdev_max_backlog=65535</li>
+<li>net.ipv4.tcp_max_syn_backlog=65535</li>
+<li>net.ipv4.tcp_fin_timeout = 10</li>
+<li>net.ipv4.tcp_tw_reuse = 1</li>
+<li>net.ipv4.tcp_tw_recycle = 1</li>
+<li>net.core.wmem_default =87380</li>
+<li>net.core.wmem_max =16777216</li>
+<li>net.core.rmem_default =87380</li>
+<li>net.core.rmem_max =16777216</li>
+<li>net.ipv4.tcp_keepalive_time = 120</li>
+<li>net.ipv4.tcp_keepalive_intvl = 30</li>
+<li>net.ipv4.tcp_keepalive_probes = 3</li>
+</ul>
+<p>​    </p>
+<p>内存：</p>
+<p>kernel.shmmax = 4294967295   - 单个共享内存段的最大值</p>
+<p>这个参数应该设置的足够大，以便能在一个共享内存段下容纳下整个的Innodb缓冲池的大小。</p>
+<p>vm.swappiness = o<br>这个参数当内存不足时会对性能产生比较明显的影响</p>
+<p><strong>增加资源限制(/etc/security/limit.conf)</strong></p>
+<ul>
+<li>soft nofile 65535</li>
+<li>hard nofile 65535</li>
+</ul>
+<p><strong>磁盘调度策略(/sys/block/devname/queue/scheduler)</strong></p>
+<p>cat /sys/block/sda/queue/scheduler</p>
+<p>noop anticipatory deadline [cfq]</p>
+<p>noop（电梯式调度策略  - FIFO 队列）</p>
+<p>deadline（截止时间调度策略）</p>
+<p>anticipatory(预料I/O调度策略)</p>
+<h5 id="文件系统对性能的影响"><a href="#文件系统对性能的影响" class="headerlink" title="文件系统对性能的影响"></a>文件系统对性能的影响</h5><p>Window</p>
+<ul>
+<li>FAT</li>
+<li>NTFS</li>
+</ul>
+<p>Linux</p>
+<ul>
+<li>EXT3</li>
+<li>EXT4</li>
+<li><strong>XFS</strong></li>
+</ul>
+<p>EXT3/4系统的挂载参数(/etc/fstab)</p>
+<ul>
+<li><p>data=writeback | ordered l journals</p>
+</li>
+<li><p>noatime , nodiratime</p>
+</li>
+</ul>
+<p>/dev/sda1/ext4 noatime,nodiratime,data=writeback 1 1</p>
+<h4 id="MySQL体系结构"><a href="#MySQL体系结构" class="headerlink" title="MySQL体系结构"></a>MySQL体系结构</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/1540950-20190619114241029-347701365.png" alt="1540950-20190619114241029-347701365"></p>
+<h5 id="MyISAM存储引擎"><a href="#MyISAM存储引擎" class="headerlink" title="MyISAM存储引擎"></a>MyISAM存储引擎</h5><p>在MySQL 5.1及之前的版本，MyISAM是默认的存储引擎</p>
+<h6 id="特性"><a href="#特性" class="headerlink" title="特性"></a>特性</h6><ol>
+<li><h6 id="加锁与并发"><a href="#加锁与并发" class="headerlink" title="加锁与并发"></a>加锁与并发</h6><p>MyISAM对整张表加锁，而不是针对行。读取时会对需要读到的所有表加共享锁，写入时则对表加排他锁。但是在表有读取查询的同时，也可以往表中插入新的记录(这被称为并发插入，CONCURRENT INSERT)。</p>
+</li>
+<li><h6 id="表损坏和修复"><a href="#表损坏和修复" class="headerlink" title="表损坏和修复"></a>表损坏和修复</h6><p>MyISAM 存储引擎的某个表文件出错之后，仅影响到该表，而不会影响到其他表，更不会影响到其他的数据库。如果我们正在运行过程中发现某个 MyISAM 表出现问题了， 则可以在线通过 check table 命令来尝试校验他，并可以通过 repair table 命令来尝试修 复。在数据库关闭状态下，我们也可以通过 myisamchk 工具来对数据库中某个（或某些）表进行检测或者修复。不过强烈建议不到万不得已不要轻易对表进行修复操作，修复之前尽量 做好可能的备份工作，以免带来不必要的后果。</p>
+</li>
+<li><h6 id="索引特性"><a href="#索引特性" class="headerlink" title="索引特性"></a>索引特性</h6><p>即使是BLOB和TEXT等长字段，也可以基于其前500个字符创建索引。MyISAM也支持全文索引。可以指定<strong>DELAY_KEY_WRITER</strong>来延迟更新索引键</p>
+</li>
+</ol>
+<h6 id="优缺点："><a href="#优缺点：" class="headerlink" title="优缺点："></a>优缺点：</h6><ol>
+<li><p>不支持事务和行级锁</p>
+</li>
+<li><p>崩溃后无法安全恢复</p>
+</li>
+</ol>
+<h6 id="存储"><a href="#存储" class="headerlink" title="存储"></a>存储</h6><p>MyISAM 存储引擎的表在数据库中，每一个表都被存放为三个以表名命名的物理文件。 </p>
+<table>
+<thead>
+<tr>
+<th>定义</th>
+<th>文件</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>表结构定义信息</td>
+<td>.FRM</td>
+</tr>
+<tr>
+<td>表的数据</td>
+<td>.MYD</td>
+</tr>
+<tr>
+<td>索引数据</td>
+<td>.MYI</td>
+</tr>
+</tbody></table>
+<p>每个表都有且仅有这样三个文件做为 MyISAM 存储类型的表的存储，也就是说不管这个表有多少个索引，都是存放在同一个.MYI 文件中。</p>
+<h6 id="MyISAM压缩表"><a href="#MyISAM压缩表" class="headerlink" title="MyISAM压缩表"></a>MyISAM压缩表</h6><p><strong>默认是不压缩的，压缩方式：</strong></p>
+<ul>
+<li>创建表时通过 ROW_FORMAT 来指定 {COMPRESSED | DEFAULT}，</li>
+<li>myisampack 工具</li>
+</ul>
+<p>而在非压缩的情况下，表是静态还是动态，就和我们表中个字段的定义相关了。只要表中有可变长度类型的字段存在，那么该表就肯定是DYNAMIC 格式的，如果没有任何可变长度的字段，则为 FIXED 格式。</p>
+<p>适用场景：</p>
+<ul>
+<li>非事务性应用</li>
+<li>只读类应用</li>
+<li>空间类应用</li>
+</ul>
+<h5 id="InnoDB存储引擎"><a href="#InnoDB存储引擎" class="headerlink" title="InnoDB存储引擎"></a>InnoDB存储引擎</h5><h6 id="特性："><a href="#特性：" class="headerlink" title="特性："></a>特性：</h6><ol>
+<li><h6 id="支持事务安装"><a href="#支持事务安装" class="headerlink" title="支持事务安装"></a>支持事务安装</h6><p>READ UNCOMMITTED，</p>
+<p>READ COMMITTED，</p>
+<p>REPEATABLE READ </p>
+<p>SERIALIZABLE</p>
+</li>
+<li><h6 id="数据多版本读取"><a href="#数据多版本读取" class="headerlink" title="数据多版本读取"></a>数据多版本读取</h6><p>在事务支持的同时，为了保证数据的一致性已经并发时候的性能，通过对 undo 信息，实现了数据的多版本读取</p>
+</li>
+<li><h6 id="行级锁的支持"><a href="#行级锁的支持" class="headerlink" title="行级锁的支持"></a>行级锁的支持</h6><p>改变了MyISAM的锁机制，通过索引实现了行锁，最大程度支持并发</p>
+</li>
+<li><h6 id="实现外键"><a href="#实现外键" class="headerlink" title="实现外键"></a>实现外键</h6><p>虽然很多数据库系统调优专家都建议不要这样做，但是对于不少用户来说在数据 库端加如外键控制可能仍然是成本最低的选择</p>
+</li>
+<li><h6 id="支持符号链接"><a href="#支持符号链接" class="headerlink" title="支持符号链接"></a>支持符号链接</h6></li>
+<li><p>Redo Log （持久性） 和Undo Log（回滚）</p>
+</li>
+</ol>
+<p>事务安全性主要就是通过Redo 日志和记录在表空间中的Undo 信息来保证的。</p>
+<p>Redo  日志中记录了Innodb 所做的所有物理变更和事务信息，</p>
+<p>通过Redo 日志和Undo 信息，Innodb 保证了在任何情况下的事务安全性。</p>
+<p>Innodb 的redo日志同样默认存放在数据目录下，</p>
+<p>innodb_log_group_home_dir 更改设置日志的存放位置，</p>
+<p>innodb_log_files_in_group 设置日志的数量。</p>
+<p>Innodb使用表空间进行数据存储</p>
+<p><strong>innodb_file_per_table</strong></p>
+<p>ON:独立表空间:tablename. ibd</p>
+<p>OFF:系统表空间:ibdataX</p>
+<table>
+<thead>
+<tr>
+<th>定义</th>
+<th>文件</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>表结构定义信息</td>
+<td>.FRM</td>
+</tr>
+<tr>
+<td>表的数据、索引数据</td>
+<td>.IBD</td>
+</tr>
+</tbody></table>
+<p>系统表空间和独立表空间要如何选择</p>
+<p>比较:</p>
+<ul>
+<li>系统表空间无法简单的收缩文件大小</li>
+<li>独立表空间可以通过optimize table命令收缩系统文件</li>
+<li>系统表空间会产生IO瓶颈</li>
+<li>独立表空间可以同时向多个文件刷新数据</li>
+</ul>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201116001908090.png" alt="image-20201116001931827"></p>
+<h4 id="MySQL服务器参数介绍"><a href="#MySQL服务器参数介绍" class="headerlink" title="MySQL服务器参数介绍"></a>MySQL服务器参数介绍</h4><h5 id="MySQL获取配置信息路径"><a href="#MySQL获取配置信息路径" class="headerlink" title="MySQL获取配置信息路径"></a>MySQL获取配置信息路径</h5><ul>
+<li><p>命令行参数<br>mysqld_safe –datadir=/data/sql_data</p>
+</li>
+<li><p>配置文件   mysqld –help –verbose | grep -A 1 ‘Default optiorns</p>
+<p>/etc/my.cnf </p>
+<p>/etc/mysql/my.cnf </p>
+<p>/home/mysql/my.cnf</p>
+<p>~/.my.cnf</p>
+</li>
+</ul>
+<h5 id="MySQL配置参数的做用域"><a href="#MySQL配置参数的做用域" class="headerlink" title="MySQL配置参数的做用域"></a>MySQL配置参数的做用域</h5><ul>
+<li><p>全局参数</p>
+<p>set global参数名=参数值;</p>
+<p>set @@global.参数名:=参数值;</p>
+</li>
+<li><p>会话参数</p>
+<p>set [session]参数名=参数值;</p>
+<p>set @@session.参数名:=参数值;</p>
+</li>
+</ul>
+<h5 id="内存配置相关参数"><a href="#内存配置相关参数" class="headerlink" title="内存配置相关参数"></a>内存配置相关参数</h5><ul>
+<li><p>确定可以使用的内存的上限</p>
+</li>
+<li><p>确定MySQL的每个连接使用的内存</p>
+<p>sort_buffer_size 每个线程排序缓冲区的大小</p>
+<p>join_buffer_size   每个连接所使用连接缓冲区的大小</p>
+<p>read_buffer_size   MyISAM 查询缓冲区大小  （4k的倍数）</p>
+<p>read_rnd_buffer_size 索引缓冲区的大小</p>
+</li>
+</ul>
+<ul>
+<li><p>确定需要为操作系统保留多少内存   （生产环境一台服务器运行一个服务器实例）</p>
+</li>
+<li><p>如何为缓存池分配内存</p>
+<p>*<em>Innodb_buffer_pool_size     总内存 - (每个线程所需要的内存</em>连接数) - 系统保留内存**， 缓存Innodb的索引、数据、哈希索引、锁、插入缓冲、其它数据结构、延迟写入</p>
+<p><strong>key_buffer_size</strong>  MyISAM 缓冲池，缓存索引、数据则由操作系统缓存</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">select sum(index_length)</span><br><span class="line">from information_schema.tables where engine&#x3D;&#39;myisam&#39;</span><br></pre></td></tr></table></figure>
+
+
+
+</li>
+</ul>
+<h5 id="I-O相关配置参数（决定MySQL如何同步缓冲池的数据到磁盘上持久化）"><a href="#I-O相关配置参数（决定MySQL如何同步缓冲池的数据到磁盘上持久化）" class="headerlink" title="I/O相关配置参数（决定MySQL如何同步缓冲池的数据到磁盘上持久化）"></a>I/O相关配置参数（决定MySQL如何同步缓冲池的数据到磁盘上持久化）</h5><h6 id="Innodb-I-O相关配置"><a href="#Innodb-I-O相关配置" class="headerlink" title="Innodb I/O相关配置"></a>Innodb I/O相关配置</h6><p>InnoDb写入数据过程  事务日志缓冲区 -&gt;  操作系统cache -&gt; 刷新到磁盘日志</p>
+<ul>
+<li><p><strong>innodb_log_group_home_dir</strong> 更改设置日志的存放位置，</p>
+</li>
+<li><p><strong>innodb_log_files_in_group</strong> 设置日志的数量。</p>
+</li>
+<li><p><strong>Innodb_log_buffer_size</strong>      </p>
+<p>事务日志总大小 = Innodb_log_files_in_group * Innodb_log_file_size</p>
+</li>
+<li><p><strong>Innodb_flush_log_at_trx_commit</strong></p>
+<p>0:每秒进行一次log写入cache，并flush log到磁盘</p>
+<p>1[默认]:在每次事务提交执行log写入cache，并flush log到磁盘</p>
+<p>2[建议]:每次事务提交,执行log数据写入到cache，每秒执行一次flush log到磁盘</p>
+</li>
+<li><p><strong>Innodb_flush_method=O_DIRECT</strong></p>
+</li>
+<li><p><strong>Innodb_file_per_table = 1</strong>   是否使用表空间</p>
+</li>
+<li><p><strong>Innodb_doublewrite = 1</strong>   双写缓存</p>
+</li>
+</ul>
+<h6 id="MyISAM-I-O相关配置"><a href="#MyISAM-I-O相关配置" class="headerlink" title="MyISAM I/O相关配置"></a>MyISAM I/O相关配置</h6><ul>
+<li><p><strong>delay_key_write</strong></p>
+<p>OFF:每次写操作后刷新键缓冲中的脏块到磁盘</p>
+<p>ON:只对在键表时指定了delay_key_write选项的表使用延迟刷新</p>
+<p>ALL:对所有MYISAM表都使用延迟键写入</p>
+</li>
+</ul>
+<h6 id="安全相关配置参数"><a href="#安全相关配置参数" class="headerlink" title="安全相关配置参数"></a>安全相关配置参数</h6><p><strong>expire_logs_days</strong>    指定自动清理binlog的天数</p>
+<p><strong>max_allowed_packet</strong> 控制MySQL可以接收的包的大小   （如果主从一定设置一致）</p>
+<p><strong>skip_name_resolve</strong>    禁用DNS查找</p>
+<p><strong>sysdate_is_now</strong>    确保sysdate()返回确定性日期</p>
+<p><strong>read_only</strong>    禁止非super权限的用户写权限  （建议在从库中启用，只接受从主库传过来的数据变更）</p>
+<p><strong>skip_slave_start</strong> 禁用Slave自动恢复</p>
+<p><strong>sql_mode</strong>    设置MySQL所使用的SQL模式</p>
+<ul>
+<li>strict_trans_tables </li>
+<li>no_engine_subtitution</li>
+<li>no_zero_date</li>
+<li>no_zero_in_date</li>
+<li>only_full_group_by</li>
+</ul>
+<h6 id="其它常用配置参数"><a href="#其它常用配置参数" class="headerlink" title="其它常用配置参数"></a>其它常用配置参数</h6><p><strong>sync_binlog</strong>    控制MySQL如何向磁盘刷新binlog</p>
+<p><strong>tmp_table_size</strong>、max_heap_table_size   控制内存临时表大小、建议保持一致</p>
+<p><strong>max_connections</strong>    控制允许的最大连接数（默认100、通常设置成2000或根据应用环境来定）</p>
+<h4 id="数据库结构设计对性能的影响（对性能影响比较大）"><a href="#数据库结构设计对性能的影响（对性能影响比较大）" class="headerlink" title="数据库结构设计对性能的影响（对性能影响比较大）"></a>数据库结构设计对性能的影响（对性能影响比较大）</h4><h5 id="什么影响了性能"><a href="#什么影响了性能" class="headerlink" title="什么影响了性能"></a>什么影响了性能</h5><ul>
+<li>过分的反范式化为表建立太多的列</li>
+<li>过分的范式化造成太多的表关联   （MySQL限制最多可以关联61张表）</li>
+<li>在OLTP环境中使用不恰当的分区表    （大表在物理上分成小表、实际上还是一张表、分区键选择比较关键）</li>
+<li>使用外键保证数据的完整性 （在对使用外键的修改时，MySQL会对外键进行检查，会带来额外的锁开销）</li>
+</ul>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>性能优化顺序</p>
+<ul>
+<li>数据库结构设计和SQL语句</li>
+<li>数据库存储引擎的选择和参数配置</li>
+<li>系统选择及优化</li>
+<li>硬件升级</li>
+</ul>
+<h2 id="MySQL基准测试"><a href="#MySQL基准测试" class="headerlink" title="MySQL基准测试"></a>MySQL基准测试</h2><h4 id="什么是基准测试"><a href="#什么是基准测试" class="headerlink" title="什么是基准测试"></a>什么是基准测试</h4><p><strong>定义</strong></p>
+<p>基准测试是一种测量和评估软件性能指标的活动用于建立某个时刻的性能基准，以便当系统发生软硬件变化时重新进行基准测试以评估变化对性能的影响</p>
+<p>所以， <strong>基准测试是针对系统设计的一种压力测试</strong></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201116231727439.png" alt="image-20201116231727439"></p>
+<h4 id="基准测试的目的"><a href="#基准测试的目的" class="headerlink" title="基准测试的目的"></a>基准测试的目的</h4><ul>
+<li>建立MySQL服务器的性能基准线</li>
+<li>模拟比当前系统更高的负载，以找出系统的扩展瓶颈</li>
+<li>测试不同的硬件、软件和操作系统配置</li>
+<li>证明新的硬件设备是否配置正确</li>
+</ul>
+<h4 id="基准测试的策略"><a href="#基准测试的策略" class="headerlink" title="基准测试的策略"></a>基准测试的策略</h4><p><strong>主要有两种主要的策略</strong>：</p>
+<ol>
+<li><p><strong>针对整个系统的整体测试（集成式）</strong></p>
+<p>优点：能够测试整个系统的性能，包括web服务器缓存、数据库等。</p>
+<p>​            能反映出系统中各个组件接口间的性能问题体现真实性能状况。</p>
+<p>缺点：测试设计复杂，消耗时间长。</p>
+</li>
+<li><p>单独测试MySQL（单组件）</p>
+<p>优点：测试设计简单，所需消耗时间短。</p>
+<p>缺点：无法全面了解整个系统的性能基线。</p>
+</li>
+</ol>
+<h5 id="为什么要针对整个系统做集成式测试，而不是单独测试MySQL："><a href="#为什么要针对整个系统做集成式测试，而不是单独测试MySQL：" class="headerlink" title="为什么要针对整个系统做集成式测试，而不是单独测试MySQL："></a>为什么要针对整个系统做集成式测试，而不是单独测试MySQL：</h5><ul>
+<li>测试整个应用系统，包括Web服务器、应用代码、网络和数据库是非常有用的，因为用户关注的并不仅仅是MySQL本身的性能，而是应用整体的性能。</li>
+<li>MySQL并非总是应用的瓶颈，通过整体的测试可以揭示这一点。只有对应用做整体测试，才能发现各部分之间的缓存带来的影响。</li>
+<li>整体应用的集成式测试更能揭示应用的真实表现，而单独组件的测试很难做到这一点。</li>
+</ul>
+<h5 id="单独测试MySQL-："><a href="#单独测试MySQL-：" class="headerlink" title="单独测试MySQL****："></a><strong>单独测试</strong>MySQL****：</h5><ul>
+<li>需要比较不同的schema或查询的性能。</li>
+<li>针对应用中某个具体问题的测试。</li>
+<li>为了避免漫长的基准测试，可以通过一个短期的基准测试，做快速的“周期循环”，来检测出某些调整后的效果。</li>
+</ul>
+<h4 id="MySQL基准测试的常见指标"><a href="#MySQL基准测试的常见指标" class="headerlink" title="MySQL基准测试的常见指标"></a>MySQL基准测试的常见指标</h4><ul>
+<li><p><strong>单位时间内所处理的事务数</strong>(TPS)</p>
+</li>
+<li><p><strong>单位时间内所处理的查询数</strong>(QPS )</p>
+</li>
+<li><p><strong>响应时间</strong></p>
+<p>所需的整体时间，时间单位可能是微妙、毫秒、秒、或者分钟。根据不同的时间单位可以计算出平均响应时间、最小响应时间、最大响应时间和所占百分比。</p>
+</li>
+<li><p><strong>并发性</strong></p>
+<p>同时工作的线程数或者连接数</p>
+</li>
+<li><p><strong>可扩展性</strong></p>
+<p>简单地说，可扩展性指的是，给系统增加一倍的工作，在理想情况下就能获得两倍的结果（即吞吐量增加一倍)。或者说，给系统增加一倍的资源（比如两倍的CPU 数)，就可以获得两倍的吞吐量。</p>
+</li>
+</ul>
+<h4 id="基准测试的步骤"><a href="#基准测试的步骤" class="headerlink" title="基准测试的步骤"></a>基准测试的步骤</h4><p>决定是采用标准的基准测试，还是设计专用的测试</p>
+<ul>
+<li>准备基准测试及数据收集脚本</li>
+<li>运行基准测试</li>
+<li>保存及分析基准测试结果</li>
+</ul>
+<h4 id="信息收集脚本-CPU使用率、IO、网络流量、状态与计数器信息等"><a href="#信息收集脚本-CPU使用率、IO、网络流量、状态与计数器信息等" class="headerlink" title="信息收集脚本 - CPU使用率、IO、网络流量、状态与计数器信息等"></a>信息收集脚本 - CPU使用率、IO、网络流量、状态与计数器信息等</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">!/bin/bash</span></span><br><span class="line">INTERVAL=5</span><br><span class="line">PREFIX=/home/imooc/benchmarks/$INTERVAL-sec-status</span><br><span class="line">RUNFILE=/home/imooc/benchmarks/running</span><br><span class="line">echo &quot;1&quot; &gt; $RUNFILE</span><br><span class="line">MYSQL=/usr/local/mysql/bin/mysql</span><br><span class="line"><span class="meta">$</span><span class="bash">MYSQL -e <span class="string">&quot;show global variables&quot;</span> &gt;&gt; mysql-variables</span></span><br><span class="line">while test -e $RUNFILE; do</span><br><span class="line">	file=$(date +%F_%I)</span><br><span class="line">	sleep=$(date +%s.%N | awk &#x27;&#123;print 5 - ($1 % 5)&#125;&#x27;)</span><br><span class="line">	sleep $sleep</span><br><span class="line">	ts=&quot;$(date +&quot;TS %s.%N %F %T&quot;)&quot;</span><br><span class="line">	loadavg=&quot;$(uptime)&quot;</span><br><span class="line">	echo &quot;$ts $loadavg&quot; &gt;&gt; $PREFIX-$&#123;file&#125;-status</span><br><span class="line"><span class="meta">	$</span><span class="bash">MYSQL -e <span class="string">&quot;show global status&quot;</span> &gt;&gt; <span class="variable">$PREFIX</span>-<span class="variable">$&#123;file&#125;</span>-status &amp;</span></span><br><span class="line">	echo &quot;$ts $loadavg&quot; &gt;&gt; $PREFIX-$&#123;file&#125;-innodbstatus</span><br><span class="line"><span class="meta">	$</span><span class="bash">MYSQL -e <span class="string">&quot;show engine innodb status&quot;</span> &gt;&gt; <span class="variable">$PREFIX</span>-<span class="variable">$&#123;file&#125;</span>-innodbstatus &amp;</span></span><br><span class="line">	echo &quot;$ts $loadavg&quot; &gt;&gt; $PREFIX-$&#123;file&#125;-processlist</span><br><span class="line"><span class="meta">	$</span><span class="bash">MYSQL -e <span class="string">&quot;show full processlist\G&quot;</span> &gt;&gt; <span class="variable">$PREFIX</span>-<span class="variable">$&#123;file&#125;</span>-processlist &amp;</span></span><br><span class="line">	echo $ts</span><br><span class="line">done</span><br><span class="line">echo Exiting because $RUNFILE does not exists</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="分析脚本"><a href="#分析脚本" class="headerlink" title="分析脚本"></a>分析脚本</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">!/bin/bash</span></span><br><span class="line">awk &#x27;</span><br><span class="line">   BEGIN &#123;</span><br><span class="line">     printf &quot;#ts date time load QPS&quot;;</span><br><span class="line">     fmt=&quot; %.2f&quot;;</span><br><span class="line">   &#125;</span><br><span class="line">   /^TS/ &#123;</span><br><span class="line">   ts = substr($2,1,index($2,&quot;.&quot;)-1);</span><br><span class="line">   load = NF -2;</span><br><span class="line">   diff = ts - prev_ts;</span><br><span class="line">   printf &quot;\n%s %s %s %s&quot;,ts,$3,$4,substr($load,1,length($load)-1);</span><br><span class="line">   prev_ts=ts;</span><br><span class="line">   &#125;</span><br><span class="line">   /Queries/&#123;</span><br><span class="line">   printf fmt,($2-Queries)/diff;</span><br><span class="line">   Queries=$2</span><br><span class="line">   &#125;</span><br><span class="line">   &#x27; &quot;$@&quot;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="基准测试方法避免以下常见的错误"><a href="#基准测试方法避免以下常见的错误" class="headerlink" title="基准测试方法避免以下常见的错误"></a>基准测试方法避免以下常见的错误</h4><ul>
+<li>使用真实数据的子集而不是全集。例如应用需要处理几百GB的数据，但测试只有1GB数据﹔或者只使用当前数据进行测试，却希望模拟未来业务大幅度增长后的情况。</li>
+<li>使用错误的数据分布。例如使用均匀分布的数据测试，而系统的真实数据有很多热点区域（随机生成的测试数据通常无法模拟真实的数据分布)。</li>
+<li>使用不真实的分布参数，例如假定所有用户的个人信息（profile）都会被平均地读取<br>在多用户场景中，只做单用户的测试。在单服务器上测试分布式应用。</li>
+<li>与真实用户行为不匹配。例如Web页面中的“思考时间”。真实用户在请求到一个页面后会阅读一段时间，而不是不停顿地一个接一个点击相关链接。</li>
+<li><strong>反复执行同一个查询。真实的查询是不尽相同的，这可能会导致缓存命中率降低</strong>。而反复执行同一个查询在某种程度上，会全部或者部分缓存结果。</li>
+<li>没有检查错误。如果测试的结果无法得到合理的解释，比如一个本应该很慢的查询突然变快了，就应该检查是否有错误产生。否则可能只是测试了MySQL检测语法错误的速度了。基准测试完成后，一定要检查一下错误日志，这应当是基本的要求。</li>
+<li>忽略了系统预热(warm up)的过程。例如系统重启后马上进行测试。有时候需要了解系统重启后需要多长时间才能达到正常的性能容量，要特别留意预热的时长。反过来说，如果要想分析正常的性能，需要注意，若基准测试在重启以后马上启动,则缓存是冷的、还没有数据，这时即使测试的压力相同，得到的结果也和缓存已经装满数据时是不同的。</li>
+<li>使用默认的服务器配置。</li>
+<li>测试时间太短。基准测试需要持续一定的时间。后面会继续讨论这个话题。</li>
+</ul>
+<h4 id="MySQL基准测试工具之mysqlslap"><a href="#MySQL基准测试工具之mysqlslap" class="headerlink" title="MySQL基准测试工具之mysqlslap"></a>MySQL基准测试工具之mysqlslap</h4><h5 id="常用参数说明"><a href="#常用参数说明" class="headerlink" title="常用参数说明"></a>常用参数说明</h5><p>–auto-generate-sql    由系统自动生成SQL脚本进行测试</p>
+<p>–auto-generate-sql-add-autoincrement    在生成的表中增加自增ID</p>
+<p>–auto-generate-sql-load-type    指定测试中使用的查询类型</p>
+<p>–auto-generate-sql-write-number 指定初始化数据时生成的数据量</p>
+<p>–concurrency    指定并发线程的数量</p>
+<p>–engine指定要测试表的存储引擎，可以用逗号分割多个存储引擎</p>
+<p>–no-drop 指定不清理测试数据</p>
+<p>–iterations 指定测试运行的次数</p>
+<p>–number-of-queries    指定每一个线程执行的查询数量</p>
+<p>–debug-info 指定输出额外的内存及CPU统计信息</p>
+<p>–number-int-cols指定测试表中包含的INT类型列的数量</p>
+<p>–number-char-cols 指定测试表中包含的varchar类型的数量</p>
+<p>–create-schema 指定了用于执行测试的数据库的名字</p>
+<p>–query 用于指定自定义SQL的脚本</p>
+<p>–only-print 并不运行测试脚本，而是把生成的脚本打印出来</p>
+<h6 id="案例"><a href="#案例" class="headerlink" title="案例"></a>案例</h6><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysqlslap -uroot -p --concurrency=1,50,100,200 --iterations=3 --number-int-cols=5 --number-char-cols=5 --auto-generate-sql --auto-generate-sql-add-autoincrement --engine=myisam,innodb --number-of-queries=10 --create-schema=sbtest</span><br></pre></td></tr></table></figure>
+
+
+
+<h6 id="结果"><a href="#结果" class="headerlink" title="结果"></a>结果</h6><blockquote>
+<p>Benchmark<br>     Running for engine myisam<br>     Average number of seconds to run all queries: 0.015 seconds<br>     Minimum number of seconds to run all queries: 0.015 seconds<br>     Maximum number of seconds to run all queries: 0.016 seconds<br>     Number of clients running queries: 1<br>     Average number of queries per client: 10</p>
+<p>Benchmark<br>     Running for engine myisam<br>     Average number of seconds to run all queries: 0.557 seconds<br>     Minimum number of seconds to run all queries: 0.235 seconds<br>     Maximum number of seconds to run all queries: 1.203 seconds<br>     Number of clients running queries: 50<br>     Average number of queries per client: 0</p>
+<p>Benchmark<br>     Running for engine myisam<br>     Average number of seconds to run all queries: 0.437 seconds<br>     Minimum number of seconds to run all queries: 0.437 seconds<br>     Maximum number of seconds to run all queries: 0.438 seconds<br>     Number of clients running queries: 100<br>     Average number of queries per client: 0</p>
+<p>Benchmark<br>     Running for engine myisam<br>     Average number of seconds to run all queries: 0.875 seconds<br>     Minimum number of seconds to run all queries: 0.859 seconds<br>     Maximum number of seconds to run all queries: 0.891 seconds<br>     Number of clients running queries: 200<br>     Average number of queries per client: 0</p>
+<p>Benchmark<br>     Running for engine innodb<br>     Average number of seconds to run all queries: 0.016 seconds<br>     Minimum number of seconds to run all queries: 0.016 seconds<br>     Maximum number of seconds to run all queries: 0.016 seconds<br>     Number of clients running queries: 1<br>     Average number of queries per client: 10</p>
+<p>Benchmark<br>     Running for engine innodb<br>     Average number of seconds to run all queries: 0.104 seconds<br>     Minimum number of seconds to run all queries: 0.093 seconds<br>     Maximum number of seconds to run all queries: 0.110 seconds<br>     Number of clients running queries: 50<br>     Average number of queries per client: 0</p>
+<p>Benchmark<br>     Running for engine innodb<br>     Average number of seconds to run all queries: 0.198 seconds<br>     Minimum number of seconds to run all queries: 0.188 seconds<br>     Maximum number of seconds to run all queries: 0.203 seconds<br>     Number of clients running queries: 100<br>     Average number of queries per client: 0</p>
+<p>Benchmark<br>     Running for engine innodb<br>     Average number of seconds to run all queries: 1.036 seconds<br>     Minimum number of seconds to run all queries: 0.375 seconds<br>     Maximum number of seconds to run all queries: 1.375 seconds<br>     Number of clients running queries: 200<br>     Average number of queries per client: 0</p>
+</blockquote>
+<h4 id="MySQL基准测试工作之-sysbench"><a href="#MySQL基准测试工作之-sysbench" class="headerlink" title="MySQL基准测试工作之 sysbench"></a>MySQL基准测试工作之 sysbench</h4><p>常用参数</p>
+<ul>
+<li>–test    用于指定所要执行的测试类型，支持以下参数</li>
+<li>Fileio文件系统I/O性能测试</li>
+<li>cpu cpu性能测试</li>
+<li>memory  内存性能测试</li>
+<li>Oltp  测试要指定具体的lua脚本</li>
+<li>–myql-db  用于指定执行基准测试的数据库名</li>
+<li>–mysql-table-engine  用于指定所使用的存储引擎</li>
+<li>–oltp-tables-count 执行测试的表的数量</li>
+<li>–oltp-table-size  指定每个表中的数据行数</li>
+<li>–num-threads  指定测试的并发线程数量</li>
+<li>–max-time  指定最大的测试时间</li>
+<li>–report-interval  指定间隔多长时间输出一次统计信息</li>
+<li>–mysql-user  指定执行测试的MySQL用户</li>
+<li>–mysql-password 指定执行测试的MySQL用户的密码</li>
+<li>prepare   用于准备测试数据</li>
+<li>run  用于实际进行测试</li>
+<li>cleanup  用于清理测试数据</li>
+</ul>
+<h2 id="数据库结构优化"><a href="#数据库结构优化" class="headerlink" title="数据库结构优化"></a>数据库结构优化</h2><p>良好的数据库逻辑设计和物理设计是数据库获得高性能的基础</p>
+<h4 id="数据库结构优化的目的"><a href="#数据库结构优化的目的" class="headerlink" title="数据库结构优化的目的"></a>数据库结构优化的目的</h4><ul>
+<li><p><strong>减少数据冗余</strong></p>
+</li>
+<li><p><strong>尽量避免数据维护中出现更新</strong>，插入和删除异常</p>
+<p>插入异常∶如果表中的某个实体随着另一个实体而存在</p>
+<p>更新异常∶如果更改表中的某个实体的单独属性时，需要对多行进行更新</p>
+<p>删除异常:如果删除表中的某一实体则会导致其他实体的消失</p>
+</li>
+<li><p><strong>节约数据存储空间</strong></p>
+</li>
+<li><p><strong>提高查询效率</strong></p>
+</li>
+</ul>
+<h4 id="数据库结构设计的步骤"><a href="#数据库结构设计的步骤" class="headerlink" title="数据库结构设计的步骤"></a>数据库结构设计的步骤</h4><h5 id="需求分析："><a href="#需求分析：" class="headerlink" title="需求分析："></a>需求分析：</h5><ul>
+<li>全面了解产品设计的存储需求</li>
+<li>存储需求</li>
+<li>数据处理需求</li>
+<li>数据的安全性和完整性</li>
+</ul>
+<h5 id="逻辑设计："><a href="#逻辑设计：" class="headerlink" title="逻辑设计："></a><strong>逻辑设计</strong>：</h5><ul>
+<li>设计数据的逻辑存储结构</li>
+<li>数据实体之间的逻辑关系，解决数据冗余和数据维护异常</li>
+</ul>
+<h5 id="物理设计："><a href="#物理设计：" class="headerlink" title="物理设计："></a>物理设计：</h5><p>跟所使用的数据库特点进行表结构设计</p>
+<ul>
+<li>关系型数据库: Oralce,SQLServer,MysqL,postgressQL</li>
+<li>非关系型数据库:mongo,Redis,Hadoop</li>
+<li>存储引擎：Innodb</li>
+</ul>
+<h5 id="维护优化"><a href="#维护优化" class="headerlink" title="维护优化"></a>维护优化</h5><p>根据实际情况对索引、存储结构等进行优化</p>
+<h4 id="数据库设计范式"><a href="#数据库设计范式" class="headerlink" title="数据库设计范式"></a>数据库设计范式</h4><h5 id="范式和反范式（数据的表示方法）"><a href="#范式和反范式（数据的表示方法）" class="headerlink" title="范式和反范式（数据的表示方法）"></a>范式和反范式（数据的表示方法）</h5><p>从完全的范式化到完全的反范式化，以及两者的折中。</p>
+<p>在范式化的数据库中，每个事实数据会出现并且只出现一次。相反，在反范式化的数据库中，信息是冗余的，可能会存储在多个地方。</p>
+<p>从完全的范式化到完全的反范式化，以及两者的折中.在范式化的数据库中，每个事实数据会出现并且只出现一次.相反，在反范式化的数据库中，信息是冗余的，可能会存储在多个地方.</p>
+<p>参考地址：<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/bd1f6a712d41">https://www.jianshu.com/p/bd1f6a712d41</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u013585204/article/details/108854457">https://blog.csdn.net/u013585204/article/details/108854457</a></p>
+<h5 id="需求分析及逻辑设计-范式化"><a href="#需求分析及逻辑设计-范式化" class="headerlink" title="需求分析及逻辑设计  - 范式化"></a>需求分析及逻辑设计  - 范式化</h5><h6 id="用户登录及用户管理功能"><a href="#用户登录及用户管理功能" class="headerlink" title="用户登录及用户管理功能"></a>用户登录及用户管理功能</h6><ul>
+<li>用户必须注册并登陆系统才能进行网上交易</li>
+<li>同一时间一个用户只能在一个地方登陆</li>
+<li>用户信息∶{用户名,密码,手机号,姓名,注册日期,在线状态,出生日期}</li>
+</ul>
+<p>只有一个业务主键,一定是符合第二范式</p>
+<p>没有属性和业务主键存在传递依赖的关系,符合第三范式</p>
+<h6 id="商品展示及商品管理功能"><a href="#商品展示及商品管理功能" class="headerlink" title="商品展示及商品管理功能"></a>商品展示及商品管理功能</h6><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118225058397.png" alt="image-20201118225058397"></p>
+<h5 id="需求分析及逻辑设计-反范式化"><a href="#需求分析及逻辑设计-反范式化" class="headerlink" title="需求分析及逻辑设计  - 反范式化"></a>需求分析及逻辑设计  - 反范式化</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118225902601.png" alt="image-20201118225902601"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118230005822.png" alt="image-20201118230005822"></p>
+<h5 id="范式的优点和缺点"><a href="#范式的优点和缺点" class="headerlink" title="范式的优点和缺点"></a>范式的优点和缺点</h5><ol>
+<li>范式化的更新操作通常比反范式化要快。</li>
+<li><strong>当数据较好地范式化时,就只有很少或者没有重复数据，所以只需要修改更少的数据。</strong>（可以尽量的减少数据冗余）</li>
+<li>范式化的表通常更小，可以更好地放在内存里，所以执行操作会更快。</li>
+<li>很少有多余的数据意味着检索列表数据时更少需要DISTINCT或者GROUP BY语句。还是前面的例子:在非范式化的结构中必须使用DISTINCT或者GROUP BY才能获得一份唯一的部门列表，但是如果部门（DEPARTMENT)是一张单独的表，则只需要简单的查询这张表就行了。</li>
+</ol>
+<p>范式化设计的schema的缺点是通常需要关联。稍微复杂一些的查询语句在符合范式的</p>
+<p>schema上都可能需要至少一次关联，也许更多。这不但代价昂贵，也可能使一些索引策</p>
+<p>略无效。例如，范式化可能将列存放在不同的表中，而这些列如果在一个表中本可以属于</p>
+<p>同一个索引。</p>
+<h5 id="反范式的优点和缺点"><a href="#反范式的优点和缺点" class="headerlink" title="反范式的优点和缺点"></a>反范式的优点和缺点</h5><p><code>反范式化的schema因为所有数据都在一张表中，可以很好地避免关联。</code></p>
+<p>如果不需要关联表，则对大部分查询最差的情况——即使表没有使用索引——是全表扫</p>
+<p>描。当数据比内存大时这可能比关联要快得多，因为这样避免了随机I/O。</p>
+<h5 id="混用范式化和反范式化"><a href="#混用范式化和反范式化" class="headerlink" title="混用范式化和反范式化"></a>混用范式化和反范式化</h5><p><code>完全的范式化和完全的反范式schema都是实验室才有的东西</code></p>
+<p><code>真实的世界中很少会这么极端地的使用，实际应用中经常需要混用。可能使用部分范式化的schema、缓存表、以及其他技巧。</code></p>
+<h4 id="缓存表和汇总表"><a href="#缓存表和汇总表" class="headerlink" title="缓存表和汇总表"></a>缓存表和汇总表</h4><p>有时提升性能最好的方法是在同一张表中保存衍生的冗余数据。然而，有时也需要创建一</p>
+<p>张完全独立的汇总表或缓存表（特别是为满足检索的需求时)。如果能容许少量的脏数</p>
+<p>据，这是非常好的方法，但是有时确实没有选择的余地（例如，需要避免复杂、昂贵的实</p>
+<p>时更新操作)。</p>
+<p><code>缓存表</code>用来表示存储那些可以比较简单地从schema其他表获取数据的表</p>
+<p><code>汇总表</code>则保存使用GROUP BY语句聚合数据的表</p>
+<h4 id="物理设计"><a href="#物理设计" class="headerlink" title="物理设计"></a>物理设计</h4><h5 id="定义数据库、表及字段的命名规范"><a href="#定义数据库、表及字段的命名规范" class="headerlink" title="定义数据库、表及字段的命名规范"></a>定义数据库、表及字段的命名规范</h5><ul>
+<li>数据库、表及字段的命名要遵守<strong>可读性原则</strong></li>
+<li>数据库表及字段的命名要遵守<strong>表意性原则</strong></li>
+<li>数据库表及字段的命名要遵守<strong>长名原则</strong></li>
+</ul>
+<h5 id="选择合适的存储引擎"><a href="#选择合适的存储引擎" class="headerlink" title="选择合适的存储引擎"></a>选择合适的存储引擎</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231005355.png" alt="image-20201118231005355"></p>
+<h5 id="为表中的字段选择合适的数据类型"><a href="#为表中的字段选择合适的数据类型" class="headerlink" title="为表中的字段选择合适的数据类型"></a>为表中的字段选择合适的数据类型</h5><p>当一个列可以选择多种数据类型时，</p>
+<p>应该优先考虑数字类型，</p>
+<p>其次是日期或二进制类型，</p>
+<p>最后是字符类型。</p>
+<p>对于相同级别的数据类型，应该优先选择占用空间小的数据类型</p>
+<h5 id="如何选择正确的整数类型"><a href="#如何选择正确的整数类型" class="headerlink" title="如何选择正确的整数类型"></a>如何选择正确的整数类型</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231428018.png" alt="image-20201118231428018"></p>
+<h5 id="如何选择正确的实数类型"><a href="#如何选择正确的实数类型" class="headerlink" title="如何选择正确的实数类型"></a>如何选择正确的实数类型</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231605731.png" alt="image-20201118231605731"></p>
+<h5 id="如何选择VARCHAR"><a href="#如何选择VARCHAR" class="headerlink" title="如何选择VARCHAR"></a>如何选择VARCHAR</h5><h6 id="VARCHAR类型的存储特点"><a href="#VARCHAR类型的存储特点" class="headerlink" title="VARCHAR类型的存储特点"></a>VARCHAR类型的存储特点</h6><ul>
+<li>varchar用于存储变长字符串，只占用必要的存储空间列的</li>
+<li>最大长度小于255则只占用一个额外字节用于记录字符串长度</li>
+<li>列的最大长度大于255则要占用两个额外字节用于记录字符串长度</li>
+</ul>
+<h6 id="VARCHAR长度的选择问题"><a href="#VARCHAR长度的选择问题" class="headerlink" title="VARCHAR长度的选择问题"></a>VARCHAR长度的选择问题</h6><ul>
+<li>使用最小的符合需求的长度</li>
+<li>varchar(5)和varchar(200)存储’MySQL’字符串性能不同</li>
+</ul>
+<h6 id="VARCHAR的适用场景"><a href="#VARCHAR的适用场景" class="headerlink" title="VARCHAR的适用场景"></a>VARCHAR的适用场景</h6><ul>
+<li>字符串列的最大长度比平均长度大很多字符串列很少被更新</li>
+<li>使用了多字节字符集存储字符串</li>
+</ul>
+<h5 id="如何选择CHAR类型"><a href="#如何选择CHAR类型" class="headerlink" title="如何选择CHAR类型"></a>如何选择CHAR类型</h5><h6 id="CHAR类型的存储特点"><a href="#CHAR类型的存储特点" class="headerlink" title="CHAR类型的存储特点"></a>CHAR类型的存储特点</h6><ul>
+<li>CHAR类型是定长的</li>
+<li>字符串存储在CHAR类型的列中会删除末尾的空格</li>
+<li>CHAR类型的最大宽度为255</li>
+</ul>
+<h6 id="CHAR类型的适用场景"><a href="#CHAR类型的适用场景" class="headerlink" title="CHAR类型的适用场景"></a>CHAR类型的适用场景</h6><ul>
+<li>CHAR类型适合存储所长度近似的值（MD5、身份证、手机号）</li>
+<li>CHAR类型适合存储短字符串</li>
+<li>CHAR类型适合存储经常更新的字符串列</li>
+</ul>
+<h5 id="如何选择存储日期数据"><a href="#如何选择存储日期数据" class="headerlink" title="如何选择存储日期数据"></a>如何选择存储日期数据</h5><h6 id="DATETIME类型"><a href="#DATETIME类型" class="headerlink" title="DATETIME类型"></a>DATETIME类型</h6><p>​    以YYYY-MM-DD HH:MM:SS[.fraction]格式存储日期时间</p>
+<p>​    datetime = YYYY-MM-DD HH:MM:SS</p>
+<p>​    datetime(6) = YYYY-MM-DD HH:MM:SS.fraction</p>
+<p>​    DATATIME类型与时区无关，占用8个字节的存储空间</p>
+<p>​    时间范围1000-01-01 00:00:00到9999-12-31 23:59:59</p>
+<h6 id="TIMESTAMP类型"><a href="#TIMESTAMP类型" class="headerlink" title="TIMESTAMP类型"></a>TIMESTAMP类型</h6><p>​    存储了由格林尼治时间1970年1月1日到当前时间的秒数</p>
+<p>​    以YYYY-MM-DD HH:MM:SS.[.fraction]的格式显示,占用4个字节</p>
+<p>​    时间范围1970-01-01到2038-01-19</p>
+<p>​    timestamp类型显示依赖于所指定的时区</p>
+<p>​    在行的数据修改时可以自动修改timestamp列的值</p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118233855991.png" alt="image-20201118233855991"></p>
+<h6 id="DATE类型和time类型"><a href="#DATE类型和time类型" class="headerlink" title="DATE类型和time类型"></a>DATE类型和time类型</h6><p>date类型的优点：</p>
+<p>​    占用的字节数比使用字符串、datetime、int存储要少，使用date类型只需要3个字节</p>
+<p>​    date类型用于保存1000-01-01到9999-12-31之间的日期</p>
+<p>​    time类型用于存储时间数据，格式为HH:MM:SS</p>
+<h5 id="存储日期时间数据的注意事项"><a href="#存储日期时间数据的注意事项" class="headerlink" title="存储日期时间数据的注意事项"></a>存储日期时间数据的注意事项</h5><ul>
+<li>不要使用字符串类型来存储日期时间数据</li>
+<li>日期时间类型通常比字符串占用的存储空间小</li>
+<li>日期时间类型在进行查找过滤时可以利用日期来进行对比</li>
+<li>日期时间类型还有着丰富的处理函数，可以方便的对时期类型进行日期计算</li>
+<li>使用Int存储日期时间不如使用Timestamp类型</li>
+</ul>
+<h5 id="物理设计总结"><a href="#物理设计总结" class="headerlink" title="物理设计总结"></a>物理设计总结</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118234222867.png" alt="image-20201118234222867"></p>
+<h6 id="如何为Innodb选择主键"><a href="#如何为Innodb选择主键" class="headerlink" title="如何为Innodb选择主键"></a>如何为Innodb选择主键</h6><ul>
+<li>主键应该尽可能的小</li>
+<li>主键应该是顺序增长的</li>
+<li>Innodb的主键和业务主键可以不同</li>
+</ul>
+<h2 id="MySQL高可用架构设计"><a href="#MySQL高可用架构设计" class="headerlink" title="MySQL高可用架构设计"></a>MySQL高可用架构设计</h2><h4 id="MySQL复制功能"><a href="#MySQL复制功能" class="headerlink" title="MySQL复制功能"></a>MySQL复制功能</h4><h5 id="复制解决了什么问题"><a href="#复制解决了什么问题" class="headerlink" title="复制解决了什么问题"></a>复制解决了什么问题</h5><ul>
+<li>实现在不同服务器上的数据分布利用二进制日志增量进行</li>
+<li>不需要太多的带宽</li>
+<li>但是使用基于行的复制在进行大批量的更改时会对带宽带来一定的压力</li>
+<li>特别是跨IDC环境下进行复制应该分批进行</li>
+<li>实现在不同服务器上的数据分布实现数据读取的负载均衡</li>
+<li>需要其它组件配合完成</li>
+<li>利用DNS轮询的方式把程序的读连接到不同的备份数据库使用LVS, haproxy这样的代理方式</li>
+<li>非共享架构，同样的数据分布在多台服务器上</li>
+<li>增强了数据安全性</li>
+<li>利用备库的备份来减少主库负载</li>
+<li>实现数据库高可用和故障切换</li>
+<li>实现数据库在线升级</li>
+</ul>
+<h4 id="MySQL二进制日志"><a href="#MySQL二进制日志" class="headerlink" title="MySQL二进制日志"></a>MySQL二进制日志</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121142115076.png" alt="image-20201121142115076"></p>
+<ul>
+<li>记录了所有对MySQL数据库的修改事件</li>
+<li>包括增删改查事件和对表结构的修改事件</li>
+</ul>
+<p>使用binlog命令行工具查看</p>
+<h5 id="二进制日志的格式"><a href="#二进制日志的格式" class="headerlink" title="二进制日志的格式"></a>二进制日志的格式</h5><h6 id="STATEMENT"><a href="#STATEMENT" class="headerlink" title="STATEMENT"></a>STATEMENT</h6><p>基于段的格式binlog_format=STATEMENT</p>
+<p>优点</p>
+<ul>
+<li><p>日志记录量相对较小，节约磁盘及网络I/O</p>
+<p>只对一条记录修改或者插入</p>
+<p>row格式所产生的日志量小于段产生的日志量</p>
+</li>
+</ul>
+<p>缺点</p>
+<ul>
+<li><p>必须要记录上下文信息</p>
+<p>保证语句在从服务器上执行结果和在主服务器上相同</p>
+</li>
+<li><p>特定函数如UUID),user)</p>
+<p>这样非确定性函数还是无法复制</p>
+</li>
+</ul>
+<h6 id="ROW"><a href="#ROW" class="headerlink" title="ROW"></a>ROW</h6><p>基于行的日志格式binlog_format=ROW</p>
+<ul>
+<li><p>同—SQL语句修改了10000条数据的情况下</p>
+<p>基于段的日志格式只会记录这个SQL语句</p>
+<p>基于行的日志会有10000条记录分别记录每一行的数据修改</p>
+</li>
+</ul>
+<p>优点</p>
+<ul>
+<li>使MySQL主从复制更加安全</li>
+<li>对每一行数据的修改比基于段的复制高效</li>
+<li>可以分析二进制日志恢复数据 </li>
+</ul>
+<p>缺点</p>
+<ul>
+<li><p>记录日志量较大.</p>
+<p>binlog_row_image =[FULL[MINIMAL|NOBLOB]</p>
+</li>
+</ul>
+<h6 id="MIXED"><a href="#MIXED" class="headerlink" title="MIXED"></a>MIXED</h6><p>混合日志格式binlog_format= MIXED</p>
+<p>特点</p>
+<ul>
+<li>根据SQL语句由系统决在基于段和基于行的日志格式中进行选择</li>
+<li>数据量的大小由所执行的SQL语句决定</li>
+</ul>
+<h5 id="如何选择二进制日志的格式建议"><a href="#如何选择二进制日志的格式建议" class="headerlink" title="如何选择二进制日志的格式建议"></a>如何选择二进制日志的格式建议</h5><p>Binlog_format=mixed</p>
+<p>or</p>
+<p>Binlog_format=row</p>
+<p>Binlog_row_image=minimal</p>
+<h4 id="MySQL二进制日志格式对复制的影响"><a href="#MySQL二进制日志格式对复制的影响" class="headerlink" title="MySQL二进制日志格式对复制的影响"></a>MySQL二进制日志格式对复制的影响</h4><h5 id="主库复制模式"><a href="#主库复制模式" class="headerlink" title="主库复制模式"></a>主库复制模式</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121152052474.png" alt="image-20201121152052474"></p>
+<h5 id="基于SQL语句的复制（SBR）"><a href="#基于SQL语句的复制（SBR）" class="headerlink" title="基于SQL语句的复制（SBR）"></a>基于SQL语句的复制（SBR）</h5><p>优点</p>
+<ul>
+<li>生成的日志量少，节约网络转输I/O</li>
+<li>并不强制要求主从数据库的表定义完全相同</li>
+<li>相比于基于行的复制方式更为灵活</li>
+</ul>
+<p>缺点</p>
+<ul>
+<li>对于非确定性事件，无法保证主从复制数据的一致性 （GUID）</li>
+<li>对于存储过程，触法器，自定义函数进行的修改也可能造成数据不一致</li>
+<li>相比于基于行的复制方式在从上执行时需要更多的行锁</li>
+</ul>
+<h5 id="基于行的复制（RBR）"><a href="#基于行的复制（RBR）" class="headerlink" title="基于行的复制（RBR）"></a>基于行的复制（RBR）</h5><p>优点</p>
+<ul>
+<li>可以应用于任何SQL的复制包括非确定函数，存储过程等</li>
+<li>可以减少数据库锁的使用</li>
+</ul>
+<p>缺点</p>
+<ul>
+<li>要求主从数据库的表结构相同，否则可能会中断复制</li>
+<li>无法在从上单独执行触法器</li>
+</ul>
+<h4 id="MySQL复制工作方式"><a href="#MySQL复制工作方式" class="headerlink" title="MySQL复制工作方式"></a>MySQL复制工作方式</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121185928483.png" alt="image-20201121185928483"></p>
+<ol>
+<li>主将变更写入二进制日志</li>
+<li>从读取主的二进制日志变更并写入到relay_log中</li>
+<li>在从上重放relay_log中的日志</li>
+</ol>
+<p>基于SQL段的日志是在从库上重新执行记录的SQL</p>
+<p>基于行的日志则是在从库上直接应用对数据库行的修改</p>
+<h5 id="基于GTID复制的优缺点"><a href="#基于GTID复制的优缺点" class="headerlink" title="基于GTID复制的优缺点"></a>基于GTID复制的优缺点</h5><h4 id="MySQL复制拓扑"><a href="#MySQL复制拓扑" class="headerlink" title="MySQL复制拓扑"></a>MySQL复制拓扑</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214258019.png" alt="image-20201121214258019"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214434572.png" alt="image-20201121214434572"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214632210.png" alt="image-20201121214632210"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214734130.png" alt="image-20201121214734130"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121215433429.png" alt="image-20201121215433429"></p>
+<h4 id="什么是高可用"><a href="#什么是高可用" class="headerlink" title="什么是高可用"></a>什么是高可用</h4><p><strong>高可用性H.A. ( High Availability )指的是通过尽量缩短因日常维护操作(计划)和突发的系统崩溃（非计划**</strong>)所导致的停机时间，以提高系统和应用的可用性。**</p>
+<p>可用性计算： (365*<em>248</em>60 ) *(1-0.99999 ) =5.256</p>
+<p><strong>避免导致系统不可用的因素</strong>，减少系统不可用的时间</p>
+<ul>
+<li>建立完善的监控及报警系统</li>
+<li>对备份数据进行恢复测试</li>
+<li>正确配置数据库环境</li>
+<li>对不需要的数据进行归档和清理</li>
+</ul>
+<p><strong>增加系统冗余，保证发生系统不可用时可以尽快修复</strong></p>
+<ul>
+<li>避免存在单点故障</li>
+<li>主从切换及故障转移</li>
+</ul>
+<h4 id="如何避免MySQL单点故障"><a href="#如何避免MySQL单点故障" class="headerlink" title="如何避免MySQL单点故障"></a>如何避免MySQL单点故障</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121220344809.png" alt="image-20201121220424445"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121220610514.png" alt="image-20201121220610514"></p>
+<h4 id="MMM架构"><a href="#MMM架构" class="headerlink" title="MMM架构"></a>MMM架构</h4><h2 id="数据库索引优化"><a href="#数据库索引优化" class="headerlink" title="数据库索引优化"></a>数据库索引优化</h2><p>索引优化是对查询性能优化最有效的手段</p>
+<p>MySQL中，存储引擎现在索引找到对应值，然后根据匹配的索引记录找到对应的数据行。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT first_name FROM sakila.actor WHERE actor_id &#x3D; 5;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>如果在actor_id列上建有索引，则 MySQL将使用该索引找到actor_id为5的行，也就是说，<code>MySQL先在索引上按值进行查找，然后返回所有包含该值的数据行</code>。</p>
+<p><code>索引可以包含一个或多个列的值。如果索引包含多个列，那么列的顺序也十分重要，因为MySQL 只能高效地使用索引的最左前缀列。创建一个包含两个列的索引，和创建两个只包含一列的索引是大不相同的</code>。</p>
+<p><strong>使用ORM仍然需要关心索引</strong></p>
+<h4 id="索引的类型"><a href="#索引的类型" class="headerlink" title="索引的类型"></a>索引的类型</h4><h5 id="B-Tree索引"><a href="#B-Tree索引" class="headerlink" title="B-Tree索引"></a>B-Tree索引</h5><p>不过底层的存储引擎可能使用不同的存储结构，例如，NDB集群存储引擎内部实际上使用了T-Tree结构存储这种索引，即使其名字是BTREE ; InnoDB则使用的是B+Tree。</p>
+<p>索引对多个值进行排序的依据是CREATE TABLE 语句中定义索引时列的顺序</p>
+<p>可以使用B-Tree索引的查询类型。<strong>B-Tree索引适用于全键值、键值范围或键前缀查找</strong>。其中键前缀查找只适用于根据最左前缀的查找。前面所述的索引对如下类型的查询有效。</p>
+<ul>
+<li>全值匹配<br>全值匹配指的是和索引中的所有列进行.匹配，例如前面提到的索引可用于查找姓名为Cuba Allen、出生于1960-01-01的人。</li>
+<li>匹配最左前缀<br>前面提到的索引可用于查找所有姓为Allen 的人，即只使用索引的第一列。</li>
+<li>匹配列前缀<br>也可以只匹配某一列的值的开头部分。例如前面提到的索引可用于查找所有以J开头的姓的人。这里也只使用了索引的第一列。</li>
+<li>匹配范围值<br>例如前面提到的索引可用于查找姓在Allen和Barrymore之间的人。这里也只使用了索引的第一列。</li>
+<li>精确匹配某一列并范围匹配另外一列<br>前面提到的索引也可用于查找所有姓为Allen，并且名字是字母K开头（比如Kim、Karl等)的人。即第一列last_name全匹配，第二列first_name范围匹配。</li>
+<li>只访问索引的查询<br>B-Tree通常可以支持“只访问索引的查询”，即查询只需要访问索引，而无须访问数据行。后面我们将单独讨论这种“覆盖索引”的优化。</li>
+</ul>
+<p>因为索引树中的节点是有序的，所以除了按值查找之外，索引还可以用于查询中的ORDER BY操作（按顺序查找)。一般来说，如果 B-Tree可以按照某种方式查找到值，那么也可以按照这种方式用于排序。所以，如果ORDER BY子句满足前面列出的几种查询类型，则这个索引也可以满足对应的排序需求。</p>
+<h5 id="下面是一些关于B-Tree索引的限制"><a href="#下面是一些关于B-Tree索引的限制" class="headerlink" title="下面是一些关于B-Tree索引的限制:"></a>下面是一些关于B-Tree索引的限制:</h5><p><strong>如果不是按照索引的最左列开始查找</strong>，则无法使用索引。例如上面例子中的索引无法用于查找名字为Bill的人，也无法查找某个特定生日的人，因为这两列都不是最左数据列。类似地，也无法查找姓氏以某个字母结尾的人。</p>
+<p><strong>不能跳过索引中的列</strong>。也就是说，前面所述的索引无法用于查找姓为Smith并且在某个特定日期出生的人。如果不指定名(first_name)，则 MySQL只能使用索引的第一列。</p>
+<p><strong>如果查询中有某个列的范围查询</strong>，<strong>则其右边所有列都无法使用索引优化查找</strong>。例如有查询WHERE last_name=’Smith’ AND first_name LIKE ‘J%’AND dob = ‘1976-12-23’，这个查询只能使用索引的前两列，因为这里LIKE是一个范围条件（但是服务器可以把其余列用于其他目的)。如果范围查询列值的数量有限，那么可以通过使用多个等于条件来代替范围条件。在本章的索引案例学习部分，我们将演示一个详细的案例。</p>
+<p><strong>所以，索引的列的顺序很重要</strong></p>
+<h5 id="哈希索引"><a href="#哈希索引" class="headerlink" title="哈希索引"></a>哈希索引</h5><p>基于哈希表，对于每一行数据，存储引擎会对所有的索引列计算一个哈希值。哈希索引将所有的哈希码存储在索引中，同时在哈希表中保存指向每个数据行的指针。</p>
+<p>在MySQL中，只有Memory引擎显式支持哈希索引。这也是Memory引擎表的默认索引类型。</p>
+<h6 id="哈希索引的限制"><a href="#哈希索引的限制" class="headerlink" title="哈希索引的限制"></a>哈希索引的限制</h6><ul>
+<li>哈希索引只包含哈希值和行指针，而不存储字段值，所以不能使用索引中的值来避免读取行。不过，访问内存中的行的速度很快，所以大部分情况下这一点对性能的影响并不明显。</li>
+<li>哈希索引数据并不是按照索引值顺序存储的，所以也就无法用于排序。</li>
+<li>哈希索引也不支持部分索引列匹配查找，因为哈希索引始终是使用索引列的全部内容来计算哈希值的。例如,在数据列(A,B)上建立哈希索引,如果查询只有数据列A,则无法使用该索引。</li>
+<li>哈希索引只支持等值比较查询，包括=、IN()、&lt;&gt;(注意◇&gt;和&lt;=&gt;是不同的操作)。也不支持任何范围查询，例如 WHERE price &gt; 100。</li>
+<li>访问哈希索引的数据非常快，除非有很多哈希冲突（不同的索引列值却有相同的哈希值)。当出现哈希冲突的时候，存储引擎必须遍历链表中所有的行指针，逐行进行比较,直到找到所有符合条件的行。</li>
+<li>如果哈希冲突很多的话，一些索引维护操作的代价也会很高。例如，如果在某个选择性很低（哈希冲突很多）的列上建立哈希索引，那么当从表中删除一行时，存储引擎需要遍历对应哈希值的链表中的每一行，找到并删除对应行的引用，冲突越多，代价越大。</li>
+</ul>
+<h5 id="空间数据索引（R-TREE）"><a href="#空间数据索引（R-TREE）" class="headerlink" title="空间数据索引（R-TREE）"></a>空间数据索引（R-TREE）</h5><p>MyISAM表支持空间索引，可以用作地理数据存储。</p>
+<h5 id="全文索引"><a href="#全文索引" class="headerlink" title="全文索引"></a>全文索引</h5><p>全文索引是一种特殊类型的索引，它查找的是文本中的关键词，而不是直接比较索引中的值。全文搜索和其他几类索引的匹配方式完全不一样。它有许多需要注意的细节，如停用词、词干和复数、布尔搜索等。全文索引更类似于搜索引擎做的事情，而不是简单的 WHERE条件匹配。</p>
+<h5 id="其他索引"><a href="#其他索引" class="headerlink" title="其他索引"></a>其他索引</h5><h4 id="索引的优点"><a href="#索引的优点" class="headerlink" title="索引的优点"></a>索引的优点</h4><p>三大优点：</p>
+<ul>
+<li>索引大大减少了服务器需要扫描的数据量。</li>
+<li>索引可以帮助服务器避免排序和临时表。</li>
+<li>索引可以将随机I/O变为顺序IO。</li>
+</ul>
+<h4 id="高性能的索引策略"><a href="#高性能的索引策略" class="headerlink" title="高性能的索引策略"></a>高性能的索引策略</h4><h5 id="独立的列"><a href="#独立的列" class="headerlink" title="独立的列"></a>独立的列</h5><p><strong>索引不能是表达式的一部分，也不能是函数的参数。</strong></p>
+<p>例如，下面这个查询无法使用actor_id列的索引:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT actor_id FROM sakila.actor MHERE actor_id + 1 &#x3D;5;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>下面是另一个常见的错误:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT ... WHERE TO_DAYS(CURRENT_DATE) - TO_DAYS(date_col) &lt;&#x3D; 10;</span><br></pre></td></tr></table></figure>
+
+
+
+<h5 id="前缀索引和索引选择性"><a href="#前缀索引和索引选择性" class="headerlink" title="前缀索引和索引选择性"></a>前缀索引和索引选择性</h5><p>对于很长的字符列，可以索引开始的部分字符。（节省索引空间和提高索引效率），但也会降低索引的选择性。</p>
+<p>对于BLOG、TEXT、或者很长的VARCHAR类型的列，必须使用前缀索引。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">CREATE INDEX index_name ON table(col_name(n));  #n有限制</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h5 id="联合索引"><a href="#联合索引" class="headerlink" title="联合索引"></a>联合索引</h5><p>为每个列创建独立的索引或者按照错误的顺序创建多列索引并不能提高效率。</p>
+<h6 id="如何选择索引列的顺序"><a href="#如何选择索引列的顺序" class="headerlink" title="如何选择索引列的顺序"></a>如何选择索引列的顺序</h6><ul>
+<li>经常会被使用到的列</li>
+<li>优先选择性高的列优先</li>
+<li>宽度小的列优先</li>
+</ul>
+<p>尝试使用<strong>索引合并</strong></p>
+<h5 id="聚簇索引"><a href="#聚簇索引" class="headerlink" title="聚簇索引"></a>聚簇索引</h5><p>聚簇索引并不是一种单独的索引类型，而是一种数据存储方式。具体的细节依赖于其实现方式，但InnoDB的聚簇索引实际上在同一个结构中保存了B-Tree索引和数据行。</p>
+<h5 id="覆盖索引"><a href="#覆盖索引" class="headerlink" title="覆盖索引"></a>覆盖索引</h5><p>覆盖索引（covering index）指一个查询语句的执行只用从索引中就能够取得，不必从数据表中读取。也可以称之为实现了索引覆盖。 如果一个索引包含了（或覆盖了）满足查询语句中字段与条件的数据就叫做覆盖索引。</p>
+<h5 id="使用索引扫描来做排序"><a href="#使用索引扫描来做排序" class="headerlink" title="使用索引扫描来做排序"></a>使用索引扫描来做排序</h5><ul>
+<li>索引的列顺序和Order By子句的顺序完全一致</li>
+<li>索引中所有列的方向(升序,降序)和Order by子句完全一致</li>
+<li>Order by中的字段全部在关联表中的第一张表中</li>
+</ul>
+<h5 id="模拟Hash索引优化查询-（使用BTree索引模拟Hash）"><a href="#模拟Hash索引优化查询-（使用BTree索引模拟Hash）" class="headerlink" title="模拟Hash索引优化查询  （使用BTree索引模拟Hash）"></a>模拟Hash索引优化查询  （使用BTree索引模拟Hash）</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122134903805.png" alt="image-20201122134903805"></p>
+<ul>
+<li>只能处理键值的全值匹配查找</li>
+<li>所使用的Hash函数决定着索引键的大小</li>
+</ul>
+<h5 id="利用索引优化锁"><a href="#利用索引优化锁" class="headerlink" title="利用索引优化锁"></a>利用索引优化锁</h5><ul>
+<li>索引可以减少锁定的行数</li>
+<li>索引可以加快处理速度，同时也加快了锁的释放</li>
+</ul>
+<h5 id="压缩"><a href="#压缩" class="headerlink" title="压缩"></a>压缩</h5><h5 id="冗余和重复索引"><a href="#冗余和重复索引" class="headerlink" title="冗余和重复索引"></a>冗余和重复索引</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122135545316.png" alt="image-20201122135545316"></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pt-duplicate-key-checker h&#x3D;127.0.0.1   #排查冗余索引</span><br></pre></td></tr></table></figure>
+
+
+
+<h5 id="查找未使用的索引"><a href="#查找未使用的索引" class="headerlink" title="查找未使用的索引"></a>查找未使用的索引</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">SELECT object_schema, object_name, index_name,b.TABLE_RO\</span><br><span class="line">FROM performance_schema.table_io_waits_summary_by_index_usage a JOIN information_schema.tables b ON</span><br><span class="line">a.OBJECT_SCHEMA&#96;&#x3D;b.TABLE_SCHEMA&#96;AND a.OBJECT_NAME&#96;&#x3D; b.TABLE_NAME</span><br><span class="line">WHERE index_name IS NOT NULL</span><br><span class="line">AND count_star &#x3D; 0</span><br><span class="line">ORDER BY object_schema, object_name;</span><br></pre></td></tr></table></figure>
+
+
+
+<h5 id="更新索引的统计信息及减少索引碎片"><a href="#更新索引的统计信息及减少索引碎片" class="headerlink" title="更新索引的统计信息及减少索引碎片"></a>更新索引的统计信息及减少索引碎片</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">analyze table table_name</span><br><span class="line">optimize table table_name  #会导致锁表</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="SQL查询优化"><a href="#SQL查询优化" class="headerlink" title="SQL查询优化"></a>SQL查询优化</h2><p>查询优化，索引优化，库表结构优化需要齐头并进。</p>
+<h4 id="如何获取有性能问题的SQL"><a href="#如何获取有性能问题的SQL" class="headerlink" title="如何获取有性能问题的SQL"></a>如何获取有性能问题的SQL</h4><ul>
+<li>通过用户反馈获取存在性能问题的SQL</li>
+<li>通过慢查日志获取存在性能问题的SQL</li>
+<li>实时获取存在性能问题的SQL</li>
+</ul>
+<h4 id="慢查询日志介绍"><a href="#慢查询日志介绍" class="headerlink" title="慢查询日志介绍"></a>慢查询日志介绍</h4><p>存储日志所需要的大量的磁盘空间</p>
+<p>slow_query_log    on/off 启动停止记录慢查日志   可以通过脚本定时开关</p>
+<p>slow_query_log_file    指定慢查日志的存储路径及文件</p>
+<p>long_query_time    指定记录慢查日志SQL执行时间的伐值</p>
+<p>log_queries_not_using_indexes    是否记录未使用索引的SQL</p>
+<h5 id="会记录哪些语句？"><a href="#会记录哪些语句？" class="headerlink" title="会记录哪些语句？"></a>会记录哪些语句？</h5><ul>
+<li>记录所有符合条件的SQL</li>
+<li>包括查询语句</li>
+<li>数据修改语句</li>
+<li>已经回滚的SQL</li>
+</ul>
+<h4 id="常用的慢查日志分析工具-mysqldumpslow"><a href="#常用的慢查日志分析工具-mysqldumpslow" class="headerlink" title="常用的慢查日志分析工具 (mysqldumpslow)"></a>常用的慢查日志分析工具 (mysqldumpslow)</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysqldumpslow -s r -t 10 slow-mysql.log</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122142052357.png" alt="image-20201122142052357"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122142103831.png" alt="image-20201122142103831"></p>
+<h4 id="实时获取性能问题SQL"><a href="#实时获取性能问题SQL" class="headerlink" title="实时获取性能问题SQL"></a>实时获取性能问题SQL</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122150907373.png" alt="image-20201122150907373"></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">SELECT id, user , host,DB,command, time ,state, info FROM information_schema.PROCESSLIST</span><br><span class="line">WHERE TIME &gt;&#x3D; 60</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="SQL的解析预处理及生成执行计划"><a href="#SQL的解析预处理及生成执行计划" class="headerlink" title="SQL的解析预处理及生成执行计划"></a>SQL的解析预处理及生成执行计划</h4><h4 id="查询为什么会慢（MySQL服务器处理查询请求的过程）？"><a href="#查询为什么会慢（MySQL服务器处理查询请求的过程）？" class="headerlink" title="查询为什么会慢（MySQL服务器处理查询请求的过程）？"></a>查询为什么会慢（MySQL服务器处理查询请求的过程）？</h4><ul>
+<li><p>客户端发送SQL请求给服务器</p>
+</li>
+<li><p>服务器检查是否可以在查询缓存中命中该SQL   （HASH）</p>
+</li>
+<li><p>服务器端进行SQL解析，预处理，再由优化器生成对应的执行计划</p>
+</li>
+<li><p>跟据执行计划，调用存储引擎API来查询数据</p>
+</li>
+<li><p>将结果返回给客户端</p>
+</li>
+</ul>
+<p>对于一个读写频繁的系统使用查询缓存很可能会降低查询处理的效率</p>
+<ul>
+<li>query_cache_type    设置查询缓存是否可用</li>
+<li>query_cache_size    设置查询缓存的内存大小</li>
+<li>query_cache_limit     设置查询缓存可用存储的最大值</li>
+<li>query_cache_wlock_invalidate 设置数据表被锁后是否返回缓存中的数据</li>
+<li>query_cache_min_res_unit    设置查询缓存分配的内存块最小单位</li>
+</ul>
+<h4 id="如何确定查询处理各个阶段所消耗的时间"><a href="#如何确定查询处理各个阶段所消耗的时间" class="headerlink" title="如何确定查询处理各个阶段所消耗的时间"></a>如何确定查询处理各个阶段所消耗的时间</h4><h5 id="使用profile"><a href="#使用profile" class="headerlink" title="使用profile"></a>使用profile</h5><ol>
+<li><p>set profiling =1;</p>
+</li>
+<li><p>执行查询</p>
+</li>
+<li><p>show profiles;   查看每一个查询所消耗的总时间的信息</p>
+<p>show profile for query N;查询的每个阶段所消耗的时间</p>
+</li>
+</ol>
+<p>show profile cpy for query N</p>
+<h5 id="使用performance-schema（建议）"><a href="#使用performance-schema（建议）" class="headerlink" title="使用performance_schema（建议）"></a>使用performance_schema（建议）</h5><p>启动</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">update setup_instruments SET enabled&#x3D;&#39;YES&#39;, TIMED&#x3D;&#39;YES&#39; WHERE NAME LIKE &#39;stage&#39;</span><br><span class="line"></span><br><span class="line">UPDATE setup_consumers SET enabled&#x3D;&#39;YES&#39; WHERE NAME LIKE &#39;events%&#39;;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>使用</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">SELECT a.THREAD_ID, SQL_TEXT,c.EVENT_NAME, (C.TIMER_END - c.TIMER_START)&#x2F;1000000000 AS &#39;DURATION (ms)&#39;</span><br><span class="line">FROM events_statements_history_long a</span><br><span class="line">JOIN threads b ON a.THREAD_ID&#x3D; b.THREAD_ID</span><br><span class="line">JOIN events_stages_history_long c ON c.THREAD_ID&#x3D; b.THREAD_ID</span><br><span class="line">AND c.EVENT_ID BETWEEN a.EVENT_ID AND a.END_EVENT_ID</span><br><span class="line">WHERE b.PROCESSLIST_ID&#x3D;CONNECTION_ID() AND a.EVENT_NAME&#x3D; &#39;statement&#x2F;sql&#x2F;select&#39; </span><br><span class="line">ORDER BY a.THREAD_ID,C.EVENT_ID</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="特定SQL的查询优化"><a href="#特定SQL的查询优化" class="headerlink" title="特定SQL的查询优化"></a>特定SQL的查询优化</h4><h5 id="大表的更新和删除"><a href="#大表的更新和删除" class="headerlink" title="大表的更新和删除"></a>大表的更新和删除</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">DELIMITER $$</span><br><span class="line">USE &#96;imooc&#96;$$</span><br><span class="line">DROP PROCEDURE IFEXISTS &#96;p_delete_rows&#96; $$</span><br><span class="line">CREATE DEFINER&#x3D;&#39;root&#39;127.0.0.1&#39; PROCEDURE &#39;p_delete_rows&#96; ()</span><br><span class="line">BEGIN</span><br><span class="line">	DECLARE v_rows INT;</span><br><span class="line">	SET v_rows &#x3D; 1;</span><br><span class="line">	WHILE v _rows &gt;0</span><br><span class="line">	DO</span><br><span class="line">	DELETE FROM sbtest1 WHERE id &#x3D; 90000 AND id &lt;&#x3D; 19000q LIMIT 5000;</span><br><span class="line">	SELECT ROW_COUNT(</span><br><span class="line">        INTO v_rows;</span><br><span class="line">		SELECT SLEEP(5);</span><br><span class="line">	END WHILE;</span><br><span class="line">END$$</span><br><span class="line">DELIMITER ;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="如何修改大表的结构"><a href="#如何修改大表的结构" class="headerlink" title="如何修改大表的结构"></a>如何修改大表的结构</h4><ul>
+<li>对表中的列的字段类型进行修改</li>
+<li>改变字段的宽度时还是会锁表</li>
+<li>无法解决主从数据库延迟的问题</li>
+</ul>
+<p>使用主从结构</p>
+<p>or</p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122155903133.png" alt="image-20201122155903133"></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pt-online-schema-change \</span><br><span class="line">--alter&#x3D;&quot;MODIFY c VARCHAR(150)NOT NULL DEFAULT&quot;&quot; \--user&#x3D;root --password&#x3D;PassWord D&#x3D;imooc,t&#x3D;sbtest4 \--charset&#x3D;utf8 --execute</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<h2 id="数据库的分库分表"><a href="#数据库的分库分表" class="headerlink" title="数据库的分库分表"></a>数据库的分库分表</h2><h4 id="分库"><a href="#分库" class="headerlink" title="分库"></a>分库</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160211676.png" alt="image-20201122160211676"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160318685.png" alt="image-20201122160318685"></p>
+<h4 id="分片"><a href="#分片" class="headerlink" title="分片"></a>分片</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160453314.png" alt="image-20201122160453314"></p>
+<h5 id="如何选择分区键"><a href="#如何选择分区键" class="headerlink" title="如何选择分区键"></a>如何选择分区键</h5><ol>
+<li>分区键要能尽量避免跨分片查询的发生</li>
+<li>分区键要能尽量使各个分片中的数据平均</li>
+</ol>
+<h5 id="如何存储无需分片的表"><a href="#如何存储无需分片的表" class="headerlink" title="如何存储无需分片的表"></a>如何存储无需分片的表</h5><ol>
+<li>每个分片中存储一份相同的数据</li>
+<li>使用额外的节点统一存储</li>
+</ol>
+<h5 id="如何在节点上部署分片"><a href="#如何在节点上部署分片" class="headerlink" title="如何在节点上部署分片"></a>如何在节点上部署分片</h5><ol>
+<li>每个分片使用单一数据库，并且数据库名也相同</li>
+<li>将多个分片表存储在一个数据库中，并在表名上加入分片号后缀</li>
+<li>在一个节点中部署多个数据库，每个数据库包含一个分片</li>
+</ol>
+<h5 id="如何分配分片中的数据"><a href="#如何分配分片中的数据" class="headerlink" title="如何分配分片中的数据"></a>如何分配分片中的数据</h5><ol>
+<li>按分区键的Hash值取模来分配分片</li>
+<li>数据按分区键的范围来分配分片数据</li>
+<li>利用分区键和分片的映射表来分配分片数据</li>
+</ol>
+<h5 id="如何生成全局唯一ID"><a href="#如何生成全局唯一ID" class="headerlink" title="如何生成全局唯一ID"></a>如何生成全局唯一ID</h5><ol>
+<li>使用auto_increment_increment和auto_increment_offset参数</li>
+<li>使用全局节点来生成ID</li>
+<li>在Redis等缓存服务器中创建全局ID</li>
+</ol>
+<h2 id="数据库监控"><a href="#数据库监控" class="headerlink" title="数据库监控"></a>数据库监控</h2><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122161248973.png" alt="image-20201122161248973"></p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/" title="MySQL性能管理及架构设计" target="_blank" rel="external">http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/byteprog" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.jpg" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/byteprog" target="_blank"><span class="text-dark">Graffitist</span><small class="ml-1x">Developer &amp; Shutterbug</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="vcomments"></div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    
+    <li class="next">
+      <a href="/2020/11/17/hello-world/" title="Hello World"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>$</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>Maybe you could buy me a cup of coffee.</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/images/donate/alipayimg.png" alt="Scan Qrcode" title="Scan" />
+              </div>
+              <p class="text-muted mv">Scan this qrcode</p>
+              <p class="text-grey">Open alipay app scan this qrcode, buy me a coffee!</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/images/donate/wechatpayimg.png" alt="Scan Qrcode" title="Scan" />
+              </div>
+              <p class="text-muted mv">Scan this qrcode</p>
+              <p class="text-grey">Open wechat app scan this qrcode, buy me a coffee!</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> alipay</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> wechat payment</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/byteprog" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="http://weibo.com/" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
+        
+        <li><a href="https://twitter.com/" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
+        
+        <li><a href="https://www.behance.net/" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/valine"></script>
+  <script type="text/javascript">
+  var GUEST = ['nick', 'mail', 'link'];
+  var meta = 'nick,mail,link';
+  meta = meta.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#vcomments',
+    verify: false,
+    notify: false,
+    appId: '',
+    appKey: '',
+    placeholder: 'Just go go',
+    avatar: 'mm',
+    meta: meta,
+    pageSize: '10' || 10,
+    visitor: false
+  });
+  </script>
+
+     
+
+
+
+
+
+
+
+</body>
+</html>
