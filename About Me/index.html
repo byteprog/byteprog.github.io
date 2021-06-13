@@ -22,7 +22,7 @@
 
   <!-- 页面元数据 -->
   
-  <title>Debian下Bochs安装记录 - 乱涂乱画的小站</title>
+  <title>About Me - 乱涂乱画的小站</title>
   
 
   
@@ -353,7 +353,7 @@ if (/*@cc_on!@*/false || (!!window.MSInputMethodContext && !!document.documentMo
       <div id="l_cover">
   
     
-        <div id="full" class='cover-wrapper post dock' style="display: none;">
+        <div id="full" class='cover-wrapper tags dock' style="display: none;">
           
             <div class='cover-bg lazyload placeholder' data-bg="https://uploadbeta.com/api/pictures/random/?key=BingEverydayWallpaperPicture"></div>
           
@@ -422,7 +422,7 @@ if (/*@cc_on!@*/false || (!!window.MSInputMethodContext && !!document.documentMo
           
 
 <div class='l_main'>
-  <article class="article post white-box reveal md shadow article-type-post" id="post" itemscope itemprop="blogPost">
+  <article class="article post white-box reveal md shadow article-type-tags" id="tags" itemscope itemprop="blogPost">
   
 
 
@@ -432,7 +432,7 @@ if (/*@cc_on!@*/false || (!!window.MSInputMethodContext && !!document.documentMo
     
     
       <h1 class="title">
-        Debian下Bochs安装记录
+        About Me
       </h1>
       <div class='new-meta-box'>
         
@@ -456,7 +456,7 @@ if (/*@cc_on!@*/false || (!!window.MSInputMethodContext && !!document.documentMo
             <div class="new-meta-item date">
   <a class='notlink'>
     <i class="fas fa-calendar-alt fa-fw" aria-hidden="true"></i>
-    <p>发布于：2021年6月13日</p>
+    <p>发布于：2021年6月14日</p>
   </a>
 </div>
 
@@ -467,7 +467,7 @@ if (/*@cc_on!@*/false || (!!window.MSInputMethodContext && !!document.documentMo
   <div class="new-meta-item browse leancloud">
     <a class='notlink'>
       
-      <div id="lc-pv" data-title="Debian下Bochs安装记录" data-path="/2021/06/13/Debian%E4%B8%8BBochs%E5%AE%89%E8%A3%85%E8%AE%B0%E5%BD%95/">
+      <div id="lc-pv" data-title="About Me" data-path="/About%20Me/">
         <i class="fas fa-eye fa-fw" aria-hidden="true"></i>
         <span id='number'><i class="fas fa-circle-notch fa-spin fa-fw" aria-hidden="true"></i></span>
         次浏览
@@ -485,180 +485,12 @@ if (/*@cc_on!@*/false || (!!window.MSInputMethodContext && !!document.documentMo
 
   
   
-  <p>下载地址</p>
-<p>address:<a target="_blank" rel="noopener" href="https://sourceforge.net/projects/bochs/files/bochs/2.6.9/">https://sourceforge.net/projects/bochs/files/bochs/2.6.9/</a></p>
-<h2 id="安装Bochs"><a href="#安装Bochs" class="headerlink" title="安装Bochs"></a>安装Bochs</h2><h3 id="第一种安装方式，需要编译"><a href="#第一种安装方式，需要编译" class="headerlink" title="第一种安装方式，需要编译"></a>第一种安装方式，需要编译</h3><p><strong>下载</strong></p>
-<p>curl -O <a target="_blank" rel="noopener" href="https://nchc.dl.sourceforge.net/project/bochs/bochs/2.6.9/bochs-2.6.9.tar.gz">https://nchc.dl.sourceforge.net/project/bochs/bochs/2.6.9/bochs-2.6.9.tar.gz</a></p>
-<p><strong>解压</strong></p>
-<p>tar -zxvf bochs-2.6.9.tar.gz</p>
-<p><strong>cd进入目录</strong></p>
-<p>cd bochs-2.6.9</p>
-<p><strong>配置编译选项</strong></p>
-<p>./configure –with-x11 –with-wx –enable-debugger –enable-disasm –enable-all-optimizations –enable-readline –enable-long-phy-address –enable-ltdl-install –enable-idle-hack –enable-plugins –enable-a20-pin –enable-x86-64 –enable-smp –enable-cpu-level=6 –enable-large-ramfile –enable-repeat-speedups –enable-fast-function-calls –enable-handlers-chaining –enable-trace-linking –enable-configurable-msrs –enable-show-ips –enable-cpp –enable-debugger-gui –enable-iodebug –enable-logging –enable-assert-checks –enable-fpu –enable-vmx=2 –enable-svm –enable-3dnow –enable-alignment-check –enable-monitor-mwait –enable-avx –enable-evex –enable-x86-debugger –enable-pci –enable-usb –enable-voodoo</p>
-<h4 id="MakeFile"><a href="#MakeFile" class="headerlink" title="MakeFile"></a>MakeFile</h4><p>配置完之后输入make命令编译</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">make</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>报错解决方法</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">make</span>: *** No rule to <span class="built_in">make</span> target <span class="string">&#x27;misc/bximage.cc&#x27;</span>, needed by <span class="string">&#x27;misc/bximage.o&#x27;</span>.  Stop.</span><br></pre></td></tr></table></figure>
-
-<p>解决方案为：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cp misc&#x2F;bximage.cpp misc&#x2F;bximage.cc</span><br></pre></td></tr></table></figure>
-
-
-
-<p>接下来还有类似的No rule to make target ‘xxxx’，解决方案类似。</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cp iodev/hdimage/hdimage.cpp iodev/hdimage/http:<span class="comment">//hdimage.cc</span></span><br><span class="line">cp iodev/hdimage/vmware3.cpp iodev/hdimage/http:<span class="comment">//vmware3.cc</span></span><br><span class="line">cp iodev/hdimage/vmware4.cpp iodev/hdimage/http:<span class="comment">//vmware4.cc</span></span><br><span class="line">cp iodev/hdimage/vpc-img.cpp iodev/hdimage/http:<span class="comment">//vpc-img.cc</span></span><br><span class="line">cp iodev/hdimage/vbox.cpp iodev/hdimage/http:<span class="comment">//vbox.cc</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>make执行成功后，安装</p>
-<p>make install</p>
-<h3 id="第二种安装方式，我选择的"><a href="#第二种安装方式，我选择的" class="headerlink" title="第二种安装方式，我选择的"></a>第二种安装方式，我选择的</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">apt-get install bochs</span><br><span class="line"></span><br><span class="line">apt-get install bochs-x</span><br></pre></td></tr></table></figure>
-
-
-
-<p>安装完成之后，配置会在/etc/bochs-init 目录下</p>
-<p>我们可以看看    目录下包含了哪些文件</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bochsrc init.sh</span><br></pre></td></tr></table></figure>
-
-
-
-<p>以及/usr/local/share/bochs/目录下包含了哪些文件</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">bios.bin-1.7.5     SeaBIOS-README         VGABIOS-lgpl-latest-cirrus</span><br><span class="line">BIOS-bochs-latest  VGABIOS-elpin-2.40     VGABIOS-lgpl-latest-cirrus-debug</span><br><span class="line">BIOS-bochs-legacy  VGABIOS-elpin-LICENSE  VGABIOS-lgpl-latest-debug</span><br><span class="line">keymaps            VGABIOS-lgpl-latest    VGABIOS-lgpl-README</span><br></pre></td></tr></table></figure>
-
-<p>需要稍微对这两个目录下的文件作一点说明。/etc/bochs-init/目录里的bochsrc是bochs的配置文件，这是一个很重要的文件，它必须设置准备否则无法运行bochs，这个我们等会还需要进一步地讲解bochsrc文件；/usr/local/share/bochs/目录里的几个文件是bochs在加载内核image时的bios引导用的模拟程序，也就是说当bochs想要运行bochs时，内核image的引导过程是由这个目录中的BIOS-bochs-latest和BIOS-bochs-legacy来完成的。</p>
-<p>如果运行bochs出现错误:</p>
-<p>display library ‘sdl’ not available</p>
-<p>只需要将bochs配置文件bochrc中display_library:sdl删除或者改成x即可</p>
-<p>bochsrc 配置文件</p>
-<blockquote>
-<p>config_interface: textconfig<br>display_library : x<br>romimage: file=/usr/share/bochs/BIOS-bochs-latest<br>boot:floppy<br>megs: 32<br>vgaromimage: file=/usr/share/vgabios/vgabios.bin<br>floppya:type=1_44, 1_44=”/etc/bochs-init/boot.img”, status=inserted<br>ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14<br>ata1: enabled=0, ioaddr1=0x170, ioaddr2=0x370, irq=15<br>ata2: enabled=0, ioaddr1=0x1e8, ioaddr2=0x3e0, irq=11<br>ata3: enabled=0, ioaddr1=0x168, ioaddr2=0x360, irq=9<br>#ata0-master: type=disk, path=””, mode=flat, cylinders=1024, heads=16, spt=63<br>ata0-slave: type=cdrom, path=”/dev/cdrom”, status=inserted</p>
-<p>boot:floppy</p>
-<p>#ips: 1000000<br>floppy_bootsig_check: disabled=0<br>log: /dev/stdout<br>panic: action=ask<br>error: action=report<br>info: action=report<br>debug: action=ignore<br>debugger_log: -<br>com1: enabled=1, dev=/dev/ttyS0<br>parport1: enabled=1, file=”/dev/lp0”<br>sb16: midimode=1, midi=/dev/midi00, wavemode=1, wave=/dev/dsp, loglevel=2, log=/dev/stdout, dmatimer=600000<br>#vga_update_interval: 300000<br>#keyboard_serial_delay: 250<br>#keyboard_paste_delay: 100000<br>#floppy_command_delay: 500<br>mouse: enabled=0<br>#private_colormap: enabled=0<br>#ne2k: ioaddr=0x240, irq=9, mac=b0:c4:20:00:00:00, ethmod=linux, ethdev=eth0<br>#keyboard_mapping: enabled=0, map=/usr/share/bochs/keymaps/x11-pc-de.map<br>#keyboard_type: mf<br>#user_shortcut: keys=ctrlaltdel<br>#magic_break: enabled=1<br>#cmosimage: cmos.img<br>#load32bitOSImage: os=nullkernel, path=../kernel.img, iolog=../vga_io.log<br>#load32bitOSImage: os=linux, path=../linux.img, iolog=../vga_io.log, initrd=../initrd.img<br>#i440fxsupport: enabled=1<br>#usb1: enabled=1, ioaddr=0xFF80, irq=10<br>#text_snapshot_check: enable</p>
-</blockquote>
-<h3 id="Img引导启动软盘制作"><a href="#Img引导启动软盘制作" class="headerlink" title="Img引导启动软盘制作"></a>Img引导启动软盘制作</h3><p>安装了bochs后，该软件提供一个bximage工具可以制作img文件。</p>
-<p>制作步骤如下：</p>
-<p>bximage -&gt; [1] -&gt; 1.44M -&gt; boot.img</p>
-
   
   
-    
-    <div class='footer'>
-      
-      
-      
-        <div class='copyright'>
-          <blockquote>
-            
-              
-                <p>博客内容遵循 署名-非商业性使用-相同方式共享 4.0 国际 (CC BY-NC-SA 4.0) 协议</p>
-
-              
-            
-              
-                <p>本文永久链接是：<a href=http://www.postman.life/2021/06/13/Debian%E4%B8%8BBochs%E5%AE%89%E8%A3%85%E8%AE%B0%E5%BD%95/>http://www.postman.life/2021/06/13/Debian%E4%B8%8BBochs%E5%AE%89%E8%A3%85%E8%AE%B0%E5%BD%95/</a></p>
-              
-            
-          </blockquote>
-        </div>
-      
-      
-    </div>
   
-  
-    
-
-
-  <div class='article-meta' id="bottom">
-    <div class='new-meta-box'>
-      
-        
-          <div class="new-meta-item date" itemprop="dateUpdated" datetime="2021-06-13T23:31:52+08:00">
-  <a class='notlink'>
-    <i class="fas fa-edit fa-fw" aria-hidden="true"></i>
-    <p>更新于：2021年6月13日</p>
-  </a>
-</div>
-
-        
-      
-        
-          
-
-        
-      
-        
-          
-  <div class="new-meta-item share -mob-share-list">
-  <div class="-mob-share-list share-body">
-    
-      
-        <a class="-mob-share-qq" title="" rel="external nofollow noopener noreferrer noopener"
-          
-          target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.postman.life/2021/06/13/Debian%E4%B8%8BBochs%E5%AE%89%E8%A3%85%E8%AE%B0%E5%BD%95/&title=Debian下Bochs安装记录 - 乱涂乱画的小站&summary="
-          
-          >
-          
-            <img src="https://cdn.jsdelivr.net/gh/volantis-x/cdn-org/logo/128/qq.png" class="lazyload" data-srcset="https://cdn.jsdelivr.net/gh/volantis-x/cdn-org/logo/128/qq.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=">
-          
-        </a>
-      
-    
-      
-        <a class="-mob-share-qzone" title="" rel="external nofollow noopener noreferrer noopener"
-          
-          target="_blank" href="https://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=http://www.postman.life/2021/06/13/Debian%E4%B8%8BBochs%E5%AE%89%E8%A3%85%E8%AE%B0%E5%BD%95/&title=Debian下Bochs安装记录 - 乱涂乱画的小站&summary="
-          
-          >
-          
-            <img src="https://cdn.jsdelivr.net/gh/volantis-x/cdn-org/logo/128/qzone.png" class="lazyload" data-srcset="https://cdn.jsdelivr.net/gh/volantis-x/cdn-org/logo/128/qzone.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=">
-          
-        </a>
-      
-    
-      
-        <a class="-mob-share-weibo" title="" rel="external nofollow noopener noreferrer noopener"
-          
-          target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.postman.life/2021/06/13/Debian%E4%B8%8BBochs%E5%AE%89%E8%A3%85%E8%AE%B0%E5%BD%95/&title=Debian下Bochs安装记录 - 乱涂乱画的小站&summary="
-          
-          >
-          
-            <img src="https://cdn.jsdelivr.net/gh/volantis-x/cdn-org/logo/128/weibo.png" class="lazyload" data-srcset="https://cdn.jsdelivr.net/gh/volantis-x/cdn-org/logo/128/weibo.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=">
-          
-        </a>
-      
-    
-      
-    
-      
-    
-  </div>
-</div>
-
-
-
-        
-      
-    </div>
-  </div>
-
-
   
   
 
-  
-    <div class="prev-next">
-      
-      
-        <a class='next' href='/2021/05/26/spring-application/'>
-          <p class='title'>Spring笔记<i class="fas fa-chevron-right" aria-hidden="true"></i></p>
-          <p class='content'>Spring笔记BeanFactory和ApplicationContext之间的关系
-BeanFactory和ApplicationContext是Spring的两大核心接口，而其中Appli...</p>
-        </a>
-      
-    </div>
   
 </article>
 
@@ -688,20 +520,6 @@ BeanFactory和ApplicationContext是Spring的两大核心接口，而其中Appli.
 
 
 
-  <section class="widget toc-wrapper shadow desktop mobile" id="toc-div" >
-    
-  <header>
-    
-      <i class="fas fa-list fa-fw" aria-hidden="true"></i><span class='name'>本文目录</span>
-    
-  </header>
-
-
-    <div class='content'>
-        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%89%E8%A3%85Bochs"><span class="toc-text">安装Bochs</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E7%A7%8D%E5%AE%89%E8%A3%85%E6%96%B9%E5%BC%8F%EF%BC%8C%E9%9C%80%E8%A6%81%E7%BC%96%E8%AF%91"><span class="toc-text">第一种安装方式，需要编译</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#MakeFile"><span class="toc-text">MakeFile</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E7%A7%8D%E5%AE%89%E8%A3%85%E6%96%B9%E5%BC%8F%EF%BC%8C%E6%88%91%E9%80%89%E6%8B%A9%E7%9A%84"><span class="toc-text">第二种安装方式，我选择的</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Img%E5%BC%95%E5%AF%BC%E5%90%AF%E5%8A%A8%E8%BD%AF%E7%9B%98%E5%88%B6%E4%BD%9C"><span class="toc-text">Img引导启动软盘制作</span></a></li></ol></li></ol>
-    </div>
-  </section>
-
 
   
 
@@ -716,8 +534,8 @@ BeanFactory和ApplicationContext是Spring的两大核心接口，而其中Appli.
 
 <script>
   window.pdata={}
-  pdata.ispage=true;
-  pdata.postTitle="Debian下Bochs安装记录";
+  pdata.ispage=false;
+  pdata.postTitle="";
   pdata.commentPath="";
   pdata.commentPlaceholder="";
   // header 这里无论是否开启pjax都需要

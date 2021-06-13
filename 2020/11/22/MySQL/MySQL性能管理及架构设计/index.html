@@ -1,396 +1,491 @@
 <!DOCTYPE html>
-<html lang=en>
-<head>
+<html lang="zh-CN">
+  <head hexo-theme='https://github.com/volantis-x/hexo-theme-volantis/tree/4.3.1'>
   <meta charset="utf-8">
+  <!-- SEO相关 -->
   
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+    
+  
+  <!-- 渲染优化 -->
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://cdn.jsdelivr.net'>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <meta name="renderer" content="webkit">
-  <meta http-equiv="Cache-Control" content="no-transform" />
-  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="format-detection" content="telephone=no,email=no,adress=no">
-  <!-- Color theme for statusbar -->
-  <meta name="theme-color" content="#000000" />
-  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
-  <meta http-equiv="window-target" content="_top" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   
+  <link rel="preload" href="/css/first.css" as="style">
   
-  <title>MySQL性能管理及架构设计 | 乱涂乱画的小站</title>
-  <meta name="description" content="[TOC] 什么情况会影响数据库性能大量的并发和超高的CPU使用率 磁盘IO 网卡流量 大表  记录行数巨大，单表超过千万行 表数据文件巨大，表数据文件超过10G  大表对DDL操作的影响(风险) 建立索引需要很长的时间   MySQL版本&lt;5.5建立索引会锁表 MySQL版本&gt;&#x3D; 5.5虽然不会锁表但会引起主从延迟   修改表结构需要长时间锁表   会造成长时间的主从延迟  影响正常">
-<meta property="og:type" content="article">
-<meta property="og:title" content="MySQL性能管理及架构设计">
-<meta property="og:url" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/index.html">
-<meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="[TOC] 什么情况会影响数据库性能大量的并发和超高的CPU使用率 磁盘IO 网卡流量 大表  记录行数巨大，单表超过千万行 表数据文件巨大，表数据文件超过10G  大表对DDL操作的影响(风险) 建立索引需要很长的时间   MySQL版本&lt;5.5建立索引会锁表 MySQL版本&gt;&#x3D; 5.5虽然不会锁表但会引起主从延迟   修改表结构需要长时间锁表   会造成长时间的主从延迟  影响正常">
-<meta property="og:locale" content="en_US">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115233338353.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115234415353.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/1540950-20190619114241029-347701365.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201116001908090.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201116231727439.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118225058397.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118225902601.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118230005822.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231005355.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231428018.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231605731.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118233855991.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118234222867.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121142115076.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121152052474.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121185928483.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214258019.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214434572.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214632210.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214734130.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121215433429.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121220344809.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121220610514.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122134903805.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122135545316.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122142052357.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122142103831.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122150907373.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122155903133.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160211676.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160318685.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160453314.png">
-<meta property="og:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122161248973.png">
-<meta property="article:published_time" content="2020-11-22T08:28:38.000Z">
-<meta property="article:modified_time" content="2020-11-22T08:34:29.638Z">
-<meta property="article:author" content="John Doe">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115233338353.png">
-  <!-- Canonical links -->
-  <link rel="canonical" href="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/index.html">
+
+  <!-- 页面元数据 -->
   
-    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  <title>MySQL性能管理及架构设计 - 乱涂乱画的小站</title>
   
-  
-    <link rel="icon" href="/favicon.png" type="image/x-icon">
-  
-  
-<link rel="stylesheet" href="/css/style.css">
 
   
+
+  <!-- feed -->
   
+
+  <!-- import meta -->
   
+
+  <!-- link -->
   
-<meta name="generator" content="Hexo 5.2.0"></head>
+
+  <!-- import link -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/first.css">
+
+  
+
+  
+  <link rel="stylesheet" href="/css/style.css" media="print" onload="this.media='all';this.onload=null">
+  <noscript><link rel="stylesheet" href="/css/style.css"></noscript>
+  
+
+  <script id="loadcss"></script>
+
+  
+<script>
+if (/*@cc_on!@*/false || (!!window.MSInputMethodContext && !!document.documentMode))
+    document.write(
+	'<style>'+
+		'html{'+
+			'overflow-x: hidden !important;'+
+			'overflow-y: hidden !important;'+
+		'}'+
+		'.kill-ie{'+
+			'text-align:center;'+
+			'height: 100%;'+
+			'margin-top: 15%;'+
+			'margin-bottom: 5500%;'+
+		'}'+
+	'</style>'+
+    '<div class="kill-ie">'+
+        '<h1><b>抱歉，您的浏览器无法访问本站</b></h1>'+
+        '<h3>微软已经于2016年终止了对 Internet Explorer (IE) 10 及更早版本的支持，<br/>'+
+        '继续使用存在极大的安全隐患，请使用当代主流的浏览器进行访问。</h3><br/>'+
+        '<a target="_blank" rel="noopener" href="https://www.microsoft.com/zh-cn/WindowsForBusiness/End-of-IE-support"><strong>了解详情 ></strong></a>'+
+    '</div>');
+</script>
 
 
-<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
-  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
-  <div class="slimContent">
-    <div class="navbar-header">
-      
-      
-      <div class="profile-block text-center">
-        <a id="avatar" href="https://github.com/byteprog" target="_blank">
-          <img class="img-circle img-rotate" src="/images/avatar.jpg" width="200" height="200">
-        </a>
-        <h2 id="name" class="hidden-xs hidden-sm">solocat</h2>
-        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Developer &amp; Shutterbug</h3>
-        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Shanghai, China</small>
-      </div>
-      
-      <div class="search" id="search-form-wrap">
-
-    <form class="search-form sidebar-form">
-        <div class="input-group">
-            <input type="text" class="search-form-input form-control" placeholder="Search" />
-            <span class="input-group-btn">
-                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
-            </span>
-        </div>
-    </form>
-    <div class="ins-search">
-  <div class="ins-search-mask"></div>
-  <div class="ins-search-container">
-    <div class="ins-input-wrapper">
-      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
-      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+<noscript>
+	<style>
+		html{
+			overflow-x: hidden !important;
+			overflow-y: hidden !important;
+		}
+		.kill-noscript{
+			text-align:center;
+			height: 100%;
+			margin-top: 15%;
+			margin-bottom: 5500%;
+		}
+	</style>
+    <div class="kill-noscript">
+        <h1><b>抱歉，您的浏览器无法访问本站</b></h1>
+        <h3>本页面需要浏览器支持（启用）JavaScript</h3><br/>
+        <a target="_blank" rel="noopener" href="https://www.baidu.com/s?wd=启用JavaScript"><strong>了解详情 ></strong></a>
     </div>
-    <div class="ins-section-wrapper">
-      <div class="ins-section-container"></div>
-    </div>
-  </div>
-</div>
+</noscript>
 
+</head>
 
-</div>
-      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-    </div>
-    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
-      <ul class="nav navbar-nav main-nav ">
+  <body>
+    
+
+<header id="l_header" class="l_header auto shadow blur show" style='opacity: 0' >
+  <div class='container'>
+  <div id='wrapper'>
+    <div class='nav-sub'>
+      <p class="title"></p>
+      <ul class='switcher nav-list-h m-phone' id="pjax-header-nav-list">
+        <li><a id="s-comment" class="fas fa-comments fa-fw" target="_self" href='javascript:void(0)'></a></li>
         
-        
-        <li class="menu-item menu-item-home">
-          <a href="/.">
-            
-            <i class="icon icon-home-fill"></i>
-            
-            <span class="menu-title">Home</span>
-          </a>
-        </li>
-        
-        
-        <li class="menu-item menu-item-archives">
-          <a href="/archives">
-            
-            <i class="icon icon-archives-fill"></i>
-            
-            <span class="menu-title">Archives</span>
-          </a>
-        </li>
-        
-        
-        <li class="menu-item menu-item-categories">
-          <a href="/categories">
-            
-            <i class="icon icon-folder"></i>
-            
-            <span class="menu-title">Categories</span>
-          </a>
-        </li>
-        
-        
-        <li class="menu-item menu-item-tags">
-          <a href="/tags">
-            
-            <i class="icon icon-tags"></i>
-            
-            <span class="menu-title">Tags</span>
-          </a>
-        </li>
-        
-        
-        <li class="menu-item menu-item-repository">
-          <a href="/repository">
-            
-            <i class="icon icon-project"></i>
-            
-            <span class="menu-title">Repository</span>
-          </a>
-        </li>
-        
-        
-        <li class="menu-item menu-item-books">
-          <a href="/books">
-            
-            <i class="icon icon-book-fill"></i>
-            
-            <span class="menu-title">Books</span>
-          </a>
-        </li>
-        
-        
-        <li class="menu-item menu-item-links">
-          <a href="/links">
-            
-            <i class="icon icon-friendship"></i>
-            
-            <span class="menu-title">Links</span>
-          </a>
-        </li>
-        
-        
-        <li class="menu-item menu-item-about">
-          <a href="/about">
-            
-            <i class="icon icon-cup-fill"></i>
-            
-            <span class="menu-title">About</span>
-          </a>
-        </li>
+          <li><a id="s-toc" class="s-toc fas fa-list fa-fw" target="_self" href='javascript:void(0)'></a></li>
         
       </ul>
+    </div>
+		<div class="nav-main">
       
-	
-    <ul class="social-links">
-    	
-        <li><a href="https://github.com/byteprog" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
         
-        <li><a href="http://weibo.com/" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
-        
-        <li><a href="https://twitter.com/" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
-        
-        <li><a href="https://www.behance.net/" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
-        
-        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
-        
-    </ul>
+        <a class="title flat-box" target="_self" href='/'>
+          
+            <img no-lazy class='logo' src='https://logodownload.org/wp-content/uploads/2014/04/ibm-logo-0.png'/>
+          
+          
+          
+        </a>
+      
 
-    </nav>
+			<div class='menu navigation'>
+				<ul class='nav-list-h m-pc'>
+          
+          
+          
+            
+            
+              <li>
+                <a class="menuitem flat-box faa-parent animated-hover" href=/
+                  
+                  
+                  
+                    id="home"
+                  >
+                  <i class='fas fa-rss fa-fw'></i>博客
+                </a>
+                
+              </li>
+            
+          
+          
+            
+            
+              <li>
+                <a class="menuitem flat-box faa-parent animated-hover" href=/categories/
+                  
+                  
+                  
+                    id="categories"
+                  >
+                  <i class='fas fa-folder-open fa-fw'></i>分类
+                </a>
+                
+              </li>
+            
+          
+          
+            
+            
+              <li>
+                <a class="menuitem flat-box faa-parent animated-hover" href=/tags/
+                  
+                  
+                  
+                    id="tags"
+                  >
+                  <i class='fas fa-tags fa-fw'></i>标签
+                </a>
+                
+              </li>
+            
+          
+          
+            
+            
+              <li>
+                <a class="menuitem flat-box faa-parent animated-hover" href=/archives/
+                  
+                  
+                  
+                    id="archives"
+                  >
+                  <i class='fas fa-archive fa-fw'></i>归档
+                </a>
+                
+              </li>
+            
+          
+          
+            
+            
+              <li>
+                <a class="menuitem flat-box faa-parent animated-hover" href=/friends/
+                  
+                  
+                  
+                    id="friends"
+                  >
+                  <i class='fas fa-link fa-fw'></i>友链
+                </a>
+                
+              </li>
+            
+          
+          
+            
+            
+              <li>
+                <a class="menuitem flat-box faa-parent animated-hover" href=/about/
+                  
+                  
+                  
+                    id="about"
+                  >
+                  <i class='fas fa-info-circle fa-fw'></i>关于
+                </a>
+                
+              </li>
+            
+          
+          
+				</ul>
+			</div>
+
+      <div class="m_search">
+        <form name="searchform" class="form u-search-form">
+          <i class="icon fas fa-search fa-fw"></i>
+          <input type="text" class="input u-search-input" placeholder="Search..." />
+        </form>
+      </div>
+
+			<ul class='switcher nav-list-h m-phone'>
+				
+					<li><a class="s-search fas fa-search fa-fw" target="_self" href='javascript:void(0)'></a></li>
+				
+				<li>
+          <a class="s-menu fas fa-bars fa-fw" target="_self" href='javascript:void(0)'></a>
+          <ul class="menu-phone list-v navigation white-box">
+            
+              
+            
+              <li>
+                <a class="menuitem flat-box faa-parent animated-hover" href=/
+                  
+                  
+                  
+                    id="home"
+                  >
+                  <i class='fas fa-rss fa-fw'></i>博客
+                </a>
+                
+              </li>
+            
+          
+            
+              
+            
+              <li>
+                <a class="menuitem flat-box faa-parent animated-hover" href=/categories/
+                  
+                  
+                  
+                    id="categories"
+                  >
+                  <i class='fas fa-folder-open fa-fw'></i>分类
+                </a>
+                
+              </li>
+            
+          
+            
+              
+            
+              <li>
+                <a class="menuitem flat-box faa-parent animated-hover" href=/tags/
+                  
+                  
+                  
+                    id="tags"
+                  >
+                  <i class='fas fa-tags fa-fw'></i>标签
+                </a>
+                
+              </li>
+            
+          
+            
+              
+            
+              <li>
+                <a class="menuitem flat-box faa-parent animated-hover" href=/archives/
+                  
+                  
+                  
+                    id="archives"
+                  >
+                  <i class='fas fa-archive fa-fw'></i>归档
+                </a>
+                
+              </li>
+            
+          
+            
+              
+            
+              <li>
+                <a class="menuitem flat-box faa-parent animated-hover" href=/friends/
+                  
+                  
+                  
+                    id="friends"
+                  >
+                  <i class='fas fa-link fa-fw'></i>友链
+                </a>
+                
+              </li>
+            
+          
+            
+              
+            
+              <li>
+                <a class="menuitem flat-box faa-parent animated-hover" href=/about/
+                  
+                  
+                  
+                    id="about"
+                  >
+                  <i class='fas fa-info-circle fa-fw'></i>关于
+                </a>
+                
+              </li>
+            
+          
+            
+          </ul>
+        </li>
+			</ul>
+		</div>
+	</div>
   </div>
 </header>
 
+    <div id="l_body">
+      <div id="l_cover">
   
-    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
-  <div class="slimContent">
     
-      <div class="widget">
-    <h3 class="widget-title">Board</h3>
-    <div class="widget-body">
-        <div id="board">
-            <div class="content">
-                <p>欢迎交流与分享经验!</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-    
-      
-
-    
-      
-
-    
-      
-    
-      
-  <div class="widget">
-    <h3 class="widget-title">Archive</h3>
-    <div class="widget-body">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/06/">June 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a><span class="archive-list-count">3</span></li></ul>
-    </div>
-  </div>
-
-
-    
-      
-  <div class="widget">
-    <h3 class="widget-title">Recent Posts</h3>
-    <div class="widget-body">
-      <ul class="recent-post-list list-unstyled no-thumbnail">
-        
-          <li>
-            
-            <div class="item-inner">
-              <p class="item-category">
-                
-              </p>
-              <p class="item-title">
-                <a href="/2021/06/13/Debian%E4%B8%8BBochs%E5%AE%89%E8%A3%85%E8%AE%B0%E5%BD%95/" class="title">Debian下Bochs安装记录</a>
-              </p>
-              <p class="item-date">
-                <time datetime="2021-06-13T15:31:08.000Z" itemprop="datePublished">2021-06-13</time>
-              </p>
-            </div>
-          </li>
+        <div id="full" class='cover-wrapper post dock' style="display: none;">
           
-          <li>
-            
-            <div class="item-inner">
-              <p class="item-category">
-                
-              </p>
-              <p class="item-title">
-                <a href="/2021/05/26/spring-application/" class="title">Spring笔记</a>
-              </p>
-              <p class="item-date">
-                <time datetime="2021-05-25T16:22:10.000Z" itemprop="datePublished">2021-05-26</time>
-              </p>
-            </div>
-          </li>
+            <div class='cover-bg lazyload placeholder' data-bg="https://uploadbeta.com/api/pictures/random/?key=BingEverydayWallpaperPicture"></div>
           
-          <li>
-            
-            <div class="item-inner">
-              <p class="item-category">
-                
-              </p>
-              <p class="item-title">
-                <a href="/2021/05/26/How-to-work-by-tomcat/" class="title">How to work by tomcat</a>
-              </p>
-              <p class="item-date">
-                <time datetime="2021-05-25T16:17:02.000Z" itemprop="datePublished">2021-05-26</time>
-              </p>
-            </div>
-          </li>
-          
-          <li>
-            
-            <div class="item-inner">
-              <p class="item-category">
-                
-              </p>
-              <p class="item-title">
-                <a href="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/" class="title">MySQL性能管理及架构设计</a>
-              </p>
-              <p class="item-date">
-                <time datetime="2020-11-22T08:28:38.000Z" itemprop="datePublished">2020-11-22</time>
-              </p>
-            </div>
-          </li>
-          
-          <li>
-            
-            <div class="item-inner">
-              <p class="item-category">
-                
-              </p>
-              <p class="item-title">
-                <a href="/2020/11/17/MySQL%E5%BF%85%E7%9F%A5%E5%BF%85%E4%BC%9A%E7%AC%94%E8%AE%B0/" class="title">MySQL必知必会笔记</a>
-              </p>
-              <p class="item-date">
-                <time datetime="2020-11-17T14:39:02.463Z" itemprop="datePublished">2020-11-17</time>
-              </p>
-            </div>
-          </li>
-          
-      </ul>
-    </div>
-  </div>
-  
-
+          <div class='cover-body'>
+  <div class='top'>
+    
+    
+      <p class="title">shion’s 在Internet上的Blog</p>
+    
     
   </div>
-</aside>
-
-  
-  
-<main class="main" role="main">
-  <div class="content">
-  <article id="post-MySQL/MySQL性能管理及架构设计" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
-    
-    <div class="article-header">
-      
+  <div class='bottom'>
+    <div class='menu navigation'>
+      <div class='list-h'>
         
-  
-    <h1 class="article-title" itemprop="name">
-      MySQL性能管理及架构设计
-    </h1>
-  
-
-      
-      <div class="article-meta">
-        <span class="article-date">
-    <i class="icon icon-calendar-check"></i>
-	<a href="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/" class="article-date">
-	  <time datetime="2020-11-22T08:28:38.000Z" itemprop="datePublished">2020-11-22</time>
-	</a>
-</span>
-        
-        
-
-        
-
-        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/#comments" class="article-comment-link">Comments</a></span>
+          
+            <a href="/"
+              
+              
+              id="home">
+              <img src='https://cdn.jsdelivr.net/gh/twitter/twemoji@13.0/assets/svg/1f5c3.svg'><p>文档</p>
+            </a>
+          
+            <a href="/faqs/"
+              
+              
+              id="faqs">
+              <img src='https://cdn.jsdelivr.net/gh/twitter/twemoji@13.0/assets/svg/1f516.svg'><p>帮助</p>
+            </a>
+          
+            <a href="/examples/"
+              
+              
+              id="examples">
+              <img src='https://cdn.jsdelivr.net/gh/twitter/twemoji@13.0/assets/svg/1f396.svg'><p>示例</p>
+            </a>
+          
+            <a href="/contributors/"
+              
+              
+              id="contributors">
+              <img src='https://cdn.jsdelivr.net/gh/twitter/twemoji@13.0/assets/svg/1f389.svg'><p>社区</p>
+            </a>
+          
+            <a href="/archives/"
+              
+              
+              id="archives">
+              <img src='https://cdn.jsdelivr.net/gh/twitter/twemoji@13.0/assets/svg/1f4f0.svg'><p>博客</p>
+            </a>
+          
         
       </div>
     </div>
-    <div class="article-entry marked-body" itemprop="articleBody">
+  </div>
+</div>
+
+          <div id="scroll-down" style="display: none;"><i class="fa fa-chevron-down scroll-down-effects"></i></div>
+        </div>
+    
+  
+  </div>
+
+      <div id="safearea">
+        <div class="body-wrapper" id="pjax-container">
+          
+
+<div class='l_main'>
+  <article class="article post white-box reveal md shadow article-type-post" id="post" itemscope itemprop="blogPost">
+  
+
+
+  
+  <div class="article-meta" id="top">
+    
+    
+    
+      <h1 class="title">
+        MySQL性能管理及架构设计
+      </h1>
+      <div class='new-meta-box'>
+        
+          
+            
+<div class='new-meta-item author'>
+  <a class='author' href="/" rel="nofollow">
+    <img no-lazy src="">
+    <p>请设置文章作者</p>
+  </a>
+</div>
+
+          
+        
+          
+            
+
+          
+        
+          
+            <div class="new-meta-item date">
+  <a class='notlink'>
+    <i class="fas fa-calendar-alt fa-fw" aria-hidden="true"></i>
+    <p>发布于：2020年11月22日</p>
+  </a>
+</div>
+
+          
+        
+          
+            
+  <div class="new-meta-item browse leancloud">
+    <a class='notlink'>
       
-        <p>[TOC]</p>
+      <div id="lc-pv" data-title="MySQL性能管理及架构设计" data-path="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/">
+        <i class="fas fa-eye fa-fw" aria-hidden="true"></i>
+        <span id='number'><i class="fas fa-circle-notch fa-spin fa-fw" aria-hidden="true"></i></span>
+        次浏览
+      </div>
+    </a>
+  </div>
+
+
+          
+        
+      </div>
+    
+  </div>
+
+
+  
+  
+  <p>[TOC]</p>
 <h2 id="什么情况会影响数据库性能"><a href="#什么情况会影响数据库性能" class="headerlink" title="什么情况会影响数据库性能"></a>什么情况会影响数据库性能</h2><p>大量的并发和超高的CPU使用率</p>
 <p>磁盘IO</p>
 <p>网卡流量</p>
@@ -471,8 +566,8 @@
 </ol>
 <p>多个容量较小的磁盘组成一组容量更大的磁盘</p>
 <p><strong>使用RAID（磁盘冗余队列）增强传统机器硬盘的性能：</strong></p>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115233338353.png" alt="image-20201115233338353"></p>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115234415353.png" alt="image-20201115234415353"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115233338353.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115233338353.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201115233338353"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115234415353.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201115234415353.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201115234415353"></p>
 <p>使用固态存储SSD和PCIe卡：</p>
 <ol>
 <li>更好的随机读写性能</li>
@@ -547,7 +642,7 @@
 </li>
 </ul>
 <p>/dev/sda1/ext4 noatime,nodiratime,data=writeback 1 1</p>
-<h4 id="MySQL体系结构"><a href="#MySQL体系结构" class="headerlink" title="MySQL体系结构"></a>MySQL体系结构</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/1540950-20190619114241029-347701365.png" alt="1540950-20190619114241029-347701365"></p>
+<h4 id="MySQL体系结构"><a href="#MySQL体系结构" class="headerlink" title="MySQL体系结构"></a>MySQL体系结构</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/1540950-20190619114241029-347701365.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/1540950-20190619114241029-347701365.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="1540950-20190619114241029-347701365"></p>
 <h5 id="MyISAM存储引擎"><a href="#MyISAM存储引擎" class="headerlink" title="MyISAM存储引擎"></a>MyISAM存储引擎</h5><p>在MySQL 5.1及之前的版本，MyISAM是默认的存储引擎</p>
 <h6 id="特性"><a href="#特性" class="headerlink" title="特性"></a>特性</h6><ol>
 <li><h6 id="加锁与并发"><a href="#加锁与并发" class="headerlink" title="加锁与并发"></a>加锁与并发</h6><p>MyISAM对整张表加锁，而不是针对行。读取时会对需要读到的所有表加共享锁，写入时则对表加排他锁。但是在表有读取查询的同时，也可以往表中插入新的记录(这被称为并发插入，CONCURRENT INSERT)。</p>
@@ -647,7 +742,7 @@
 <li>系统表空间会产生IO瓶颈</li>
 <li>独立表空间可以同时向多个文件刷新数据</li>
 </ul>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201116001908090.png" alt="image-20201116001931827"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201116001908090.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201116001908090.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201116001931827"></p>
 <h4 id="MySQL服务器参数介绍"><a href="#MySQL服务器参数介绍" class="headerlink" title="MySQL服务器参数介绍"></a>MySQL服务器参数介绍</h4><h5 id="MySQL获取配置信息路径"><a href="#MySQL获取配置信息路径" class="headerlink" title="MySQL获取配置信息路径"></a>MySQL获取配置信息路径</h5><ul>
 <li><p>命令行参数<br>mysqld_safe –datadir=/data/sql_data</p>
 </li>
@@ -751,7 +846,7 @@
 <h2 id="MySQL基准测试"><a href="#MySQL基准测试" class="headerlink" title="MySQL基准测试"></a>MySQL基准测试</h2><h4 id="什么是基准测试"><a href="#什么是基准测试" class="headerlink" title="什么是基准测试"></a>什么是基准测试</h4><p><strong>定义</strong></p>
 <p>基准测试是一种测量和评估软件性能指标的活动用于建立某个时刻的性能基准，以便当系统发生软硬件变化时重新进行基准测试以评估变化对性能的影响</p>
 <p>所以， <strong>基准测试是针对系统设计的一种压力测试</strong></p>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201116231727439.png" alt="image-20201116231727439"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201116231727439.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201116231727439.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201116231727439"></p>
 <h4 id="基准测试的目的"><a href="#基准测试的目的" class="headerlink" title="基准测试的目的"></a>基准测试的目的</h4><ul>
 <li>建立MySQL服务器的性能基准线</li>
 <li>模拟比当前系统更高的负载，以找出系统的扩展瓶颈</li>
@@ -912,9 +1007,9 @@
 </ul>
 <p>只有一个业务主键,一定是符合第二范式</p>
 <p>没有属性和业务主键存在传递依赖的关系,符合第三范式</p>
-<h6 id="商品展示及商品管理功能"><a href="#商品展示及商品管理功能" class="headerlink" title="商品展示及商品管理功能"></a>商品展示及商品管理功能</h6><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118225058397.png" alt="image-20201118225058397"></p>
-<h5 id="需求分析及逻辑设计-反范式化"><a href="#需求分析及逻辑设计-反范式化" class="headerlink" title="需求分析及逻辑设计  - 反范式化"></a>需求分析及逻辑设计  - 反范式化</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118225902601.png" alt="image-20201118225902601"></p>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118230005822.png" alt="image-20201118230005822"></p>
+<h6 id="商品展示及商品管理功能"><a href="#商品展示及商品管理功能" class="headerlink" title="商品展示及商品管理功能"></a>商品展示及商品管理功能</h6><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118225058397.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118225058397.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201118225058397"></p>
+<h5 id="需求分析及逻辑设计-反范式化"><a href="#需求分析及逻辑设计-反范式化" class="headerlink" title="需求分析及逻辑设计  - 反范式化"></a>需求分析及逻辑设计  - 反范式化</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118225902601.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118225902601.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201118225902601"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118230005822.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118230005822.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201118230005822"></p>
 <h5 id="范式的优点和缺点"><a href="#范式的优点和缺点" class="headerlink" title="范式的优点和缺点"></a>范式的优点和缺点</h5><ol>
 <li>范式化的更新操作通常比反范式化要快。</li>
 <li><strong>当数据较好地范式化时,就只有很少或者没有重复数据，所以只需要修改更少的数据。</strong>（可以尽量的减少数据冗余）</li>
@@ -941,14 +1036,14 @@
 <li>数据库表及字段的命名要遵守<strong>表意性原则</strong></li>
 <li>数据库表及字段的命名要遵守<strong>长名原则</strong></li>
 </ul>
-<h5 id="选择合适的存储引擎"><a href="#选择合适的存储引擎" class="headerlink" title="选择合适的存储引擎"></a>选择合适的存储引擎</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231005355.png" alt="image-20201118231005355"></p>
+<h5 id="选择合适的存储引擎"><a href="#选择合适的存储引擎" class="headerlink" title="选择合适的存储引擎"></a>选择合适的存储引擎</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231005355.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231005355.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201118231005355"></p>
 <h5 id="为表中的字段选择合适的数据类型"><a href="#为表中的字段选择合适的数据类型" class="headerlink" title="为表中的字段选择合适的数据类型"></a>为表中的字段选择合适的数据类型</h5><p>当一个列可以选择多种数据类型时，</p>
 <p>应该优先考虑数字类型，</p>
 <p>其次是日期或二进制类型，</p>
 <p>最后是字符类型。</p>
 <p>对于相同级别的数据类型，应该优先选择占用空间小的数据类型</p>
-<h5 id="如何选择正确的整数类型"><a href="#如何选择正确的整数类型" class="headerlink" title="如何选择正确的整数类型"></a>如何选择正确的整数类型</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231428018.png" alt="image-20201118231428018"></p>
-<h5 id="如何选择正确的实数类型"><a href="#如何选择正确的实数类型" class="headerlink" title="如何选择正确的实数类型"></a>如何选择正确的实数类型</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231605731.png" alt="image-20201118231605731"></p>
+<h5 id="如何选择正确的整数类型"><a href="#如何选择正确的整数类型" class="headerlink" title="如何选择正确的整数类型"></a>如何选择正确的整数类型</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231428018.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231428018.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201118231428018"></p>
+<h5 id="如何选择正确的实数类型"><a href="#如何选择正确的实数类型" class="headerlink" title="如何选择正确的实数类型"></a>如何选择正确的实数类型</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231605731.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118231605731.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201118231605731"></p>
 <h5 id="如何选择VARCHAR"><a href="#如何选择VARCHAR" class="headerlink" title="如何选择VARCHAR"></a>如何选择VARCHAR</h5><h6 id="VARCHAR类型的存储特点"><a href="#VARCHAR类型的存储特点" class="headerlink" title="VARCHAR类型的存储特点"></a>VARCHAR类型的存储特点</h6><ul>
 <li>varchar用于存储变长字符串，只占用必要的存储空间列的</li>
 <li>最大长度小于255则只占用一个额外字节用于记录字符串长度</li>
@@ -982,7 +1077,7 @@
 <p>​    时间范围1970-01-01到2038-01-19</p>
 <p>​    timestamp类型显示依赖于所指定的时区</p>
 <p>​    在行的数据修改时可以自动修改timestamp列的值</p>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118233855991.png" alt="image-20201118233855991"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118233855991.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118233855991.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201118233855991"></p>
 <h6 id="DATE类型和time类型"><a href="#DATE类型和time类型" class="headerlink" title="DATE类型和time类型"></a>DATE类型和time类型</h6><p>date类型的优点：</p>
 <p>​    占用的字节数比使用字符串、datetime、int存储要少，使用date类型只需要3个字节</p>
 <p>​    date类型用于保存1000-01-01到9999-12-31之间的日期</p>
@@ -994,7 +1089,7 @@
 <li>日期时间类型还有着丰富的处理函数，可以方便的对时期类型进行日期计算</li>
 <li>使用Int存储日期时间不如使用Timestamp类型</li>
 </ul>
-<h5 id="物理设计总结"><a href="#物理设计总结" class="headerlink" title="物理设计总结"></a>物理设计总结</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118234222867.png" alt="image-20201118234222867"></p>
+<h5 id="物理设计总结"><a href="#物理设计总结" class="headerlink" title="物理设计总结"></a>物理设计总结</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118234222867.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201118234222867.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201118234222867"></p>
 <h6 id="如何为Innodb选择主键"><a href="#如何为Innodb选择主键" class="headerlink" title="如何为Innodb选择主键"></a>如何为Innodb选择主键</h6><ul>
 <li>主键应该尽可能的小</li>
 <li>主键应该是顺序增长的</li>
@@ -1014,7 +1109,7 @@
 <li>实现数据库高可用和故障切换</li>
 <li>实现数据库在线升级</li>
 </ul>
-<h4 id="MySQL二进制日志"><a href="#MySQL二进制日志" class="headerlink" title="MySQL二进制日志"></a>MySQL二进制日志</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121142115076.png" alt="image-20201121142115076"></p>
+<h4 id="MySQL二进制日志"><a href="#MySQL二进制日志" class="headerlink" title="MySQL二进制日志"></a>MySQL二进制日志</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121142115076.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121142115076.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201121142115076"></p>
 <ul>
 <li>记录了所有对MySQL数据库的修改事件</li>
 <li>包括增删改查事件和对表结构的修改事件</li>
@@ -1066,7 +1161,7 @@
 <p>or</p>
 <p>Binlog_format=row</p>
 <p>Binlog_row_image=minimal</p>
-<h4 id="MySQL二进制日志格式对复制的影响"><a href="#MySQL二进制日志格式对复制的影响" class="headerlink" title="MySQL二进制日志格式对复制的影响"></a>MySQL二进制日志格式对复制的影响</h4><h5 id="主库复制模式"><a href="#主库复制模式" class="headerlink" title="主库复制模式"></a>主库复制模式</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121152052474.png" alt="image-20201121152052474"></p>
+<h4 id="MySQL二进制日志格式对复制的影响"><a href="#MySQL二进制日志格式对复制的影响" class="headerlink" title="MySQL二进制日志格式对复制的影响"></a>MySQL二进制日志格式对复制的影响</h4><h5 id="主库复制模式"><a href="#主库复制模式" class="headerlink" title="主库复制模式"></a>主库复制模式</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121152052474.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121152052474.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201121152052474"></p>
 <h5 id="基于SQL语句的复制（SBR）"><a href="#基于SQL语句的复制（SBR）" class="headerlink" title="基于SQL语句的复制（SBR）"></a>基于SQL语句的复制（SBR）</h5><p>优点</p>
 <ul>
 <li>生成的日志量少，节约网络转输I/O</li>
@@ -1089,7 +1184,7 @@
 <li>要求主从数据库的表结构相同，否则可能会中断复制</li>
 <li>无法在从上单独执行触法器</li>
 </ul>
-<h4 id="MySQL复制工作方式"><a href="#MySQL复制工作方式" class="headerlink" title="MySQL复制工作方式"></a>MySQL复制工作方式</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121185928483.png" alt="image-20201121185928483"></p>
+<h4 id="MySQL复制工作方式"><a href="#MySQL复制工作方式" class="headerlink" title="MySQL复制工作方式"></a>MySQL复制工作方式</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121185928483.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121185928483.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201121185928483"></p>
 <ol>
 <li>主将变更写入二进制日志</li>
 <li>从读取主的二进制日志变更并写入到relay_log中</li>
@@ -1097,11 +1192,11 @@
 </ol>
 <p>基于SQL段的日志是在从库上重新执行记录的SQL</p>
 <p>基于行的日志则是在从库上直接应用对数据库行的修改</p>
-<h5 id="基于GTID复制的优缺点"><a href="#基于GTID复制的优缺点" class="headerlink" title="基于GTID复制的优缺点"></a>基于GTID复制的优缺点</h5><h4 id="MySQL复制拓扑"><a href="#MySQL复制拓扑" class="headerlink" title="MySQL复制拓扑"></a>MySQL复制拓扑</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214258019.png" alt="image-20201121214258019"></p>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214434572.png" alt="image-20201121214434572"></p>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214632210.png" alt="image-20201121214632210"></p>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214734130.png" alt="image-20201121214734130"></p>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121215433429.png" alt="image-20201121215433429"></p>
+<h5 id="基于GTID复制的优缺点"><a href="#基于GTID复制的优缺点" class="headerlink" title="基于GTID复制的优缺点"></a>基于GTID复制的优缺点</h5><h4 id="MySQL复制拓扑"><a href="#MySQL复制拓扑" class="headerlink" title="MySQL复制拓扑"></a>MySQL复制拓扑</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214258019.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214258019.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201121214258019"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214434572.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214434572.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201121214434572"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214632210.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214632210.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201121214632210"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214734130.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121214734130.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201121214734130"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121215433429.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121215433429.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201121215433429"></p>
 <h4 id="什么是高可用"><a href="#什么是高可用" class="headerlink" title="什么是高可用"></a>什么是高可用</h4><p><strong>高可用性H.A. ( High Availability )指的是通过尽量缩短因日常维护操作(计划)和突发的系统崩溃（非计划**</strong>)所导致的停机时间，以提高系统和应用的可用性。**</p>
 <p>可用性计算： (365*<em>248</em>60 ) *(1-0.99999 ) =5.256</p>
 <p><strong>避免导致系统不可用的因素</strong>，减少系统不可用的时间</p>
@@ -1116,8 +1211,8 @@
 <li>避免存在单点故障</li>
 <li>主从切换及故障转移</li>
 </ul>
-<h4 id="如何避免MySQL单点故障"><a href="#如何避免MySQL单点故障" class="headerlink" title="如何避免MySQL单点故障"></a>如何避免MySQL单点故障</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121220344809.png" alt="image-20201121220424445"></p>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121220610514.png" alt="image-20201121220610514"></p>
+<h4 id="如何避免MySQL单点故障"><a href="#如何避免MySQL单点故障" class="headerlink" title="如何避免MySQL单点故障"></a>如何避免MySQL单点故障</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121220344809.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121220344809.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201121220424445"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121220610514.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201121220610514.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201121220610514"></p>
 <h4 id="MMM架构"><a href="#MMM架构" class="headerlink" title="MMM架构"></a>MMM架构</h4><h2 id="数据库索引优化"><a href="#数据库索引优化" class="headerlink" title="数据库索引优化"></a>数据库索引优化</h2><p>索引优化是对查询性能优化最有效的手段</p>
 <p>MySQL中，存储引擎现在索引找到对应值，然后根据匹配的索引记录找到对应的数据行。</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT first_name FROM sakila.actor WHERE actor_id &#x3D; 5;</span><br></pre></td></tr></table></figure>
@@ -1194,7 +1289,7 @@
 <li>索引中所有列的方向(升序,降序)和Order by子句完全一致</li>
 <li>Order by中的字段全部在关联表中的第一张表中</li>
 </ul>
-<h5 id="模拟Hash索引优化查询-（使用BTree索引模拟Hash）"><a href="#模拟Hash索引优化查询-（使用BTree索引模拟Hash）" class="headerlink" title="模拟Hash索引优化查询  （使用BTree索引模拟Hash）"></a>模拟Hash索引优化查询  （使用BTree索引模拟Hash）</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122134903805.png" alt="image-20201122134903805"></p>
+<h5 id="模拟Hash索引优化查询-（使用BTree索引模拟Hash）"><a href="#模拟Hash索引优化查询-（使用BTree索引模拟Hash）" class="headerlink" title="模拟Hash索引优化查询  （使用BTree索引模拟Hash）"></a>模拟Hash索引优化查询  （使用BTree索引模拟Hash）</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122134903805.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122134903805.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201122134903805"></p>
 <ul>
 <li>只能处理键值的全值匹配查找</li>
 <li>所使用的Hash函数决定着索引键的大小</li>
@@ -1203,7 +1298,7 @@
 <li>索引可以减少锁定的行数</li>
 <li>索引可以加快处理速度，同时也加快了锁的释放</li>
 </ul>
-<h5 id="压缩"><a href="#压缩" class="headerlink" title="压缩"></a>压缩</h5><h5 id="冗余和重复索引"><a href="#冗余和重复索引" class="headerlink" title="冗余和重复索引"></a>冗余和重复索引</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122135545316.png" alt="image-20201122135545316"></p>
+<h5 id="压缩"><a href="#压缩" class="headerlink" title="压缩"></a>压缩</h5><h5 id="冗余和重复索引"><a href="#冗余和重复索引" class="headerlink" title="冗余和重复索引"></a>冗余和重复索引</h5><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122135545316.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122135545316.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201122135545316"></p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pt-duplicate-key-checker h&#x3D;127.0.0.1   #排查冗余索引</span><br></pre></td></tr></table></figure>
 
 
@@ -1235,9 +1330,9 @@
 </ul>
 <h4 id="常用的慢查日志分析工具-mysqldumpslow"><a href="#常用的慢查日志分析工具-mysqldumpslow" class="headerlink" title="常用的慢查日志分析工具 (mysqldumpslow)"></a>常用的慢查日志分析工具 (mysqldumpslow)</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysqldumpslow -s r -t 10 slow-mysql.log</span><br></pre></td></tr></table></figure>
 
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122142052357.png" alt="image-20201122142052357"></p>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122142103831.png" alt="image-20201122142103831"></p>
-<h4 id="实时获取性能问题SQL"><a href="#实时获取性能问题SQL" class="headerlink" title="实时获取性能问题SQL"></a>实时获取性能问题SQL</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122150907373.png" alt="image-20201122150907373"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122142052357.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122142052357.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201122142052357"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122142103831.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122142103831.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201122142103831"></p>
+<h4 id="实时获取性能问题SQL"><a href="#实时获取性能问题SQL" class="headerlink" title="实时获取性能问题SQL"></a>实时获取性能问题SQL</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122150907373.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122150907373.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201122150907373"></p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">SELECT id, user , host,DB,command, time ,state, info FROM information_schema.PROCESSLIST</span><br><span class="line">WHERE TIME &gt;&#x3D; 60</span><br></pre></td></tr></table></figure>
 
 
@@ -1293,7 +1388,7 @@
 </ul>
 <p>使用主从结构</p>
 <p>or</p>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122155903133.png" alt="image-20201122155903133"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122155903133.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122155903133.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201122155903133"></p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pt-online-schema-change \</span><br><span class="line">--alter&#x3D;&quot;MODIFY c VARCHAR(150)NOT NULL DEFAULT&quot;&quot; \--user&#x3D;root --password&#x3D;PassWord D&#x3D;imooc,t&#x3D;sbtest4 \--charset&#x3D;utf8 --execute</span><br></pre></td></tr></table></figure>
 
 
@@ -1302,9 +1397,9 @@
 
 
 
-<h2 id="数据库的分库分表"><a href="#数据库的分库分表" class="headerlink" title="数据库的分库分表"></a>数据库的分库分表</h2><h4 id="分库"><a href="#分库" class="headerlink" title="分库"></a>分库</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160211676.png" alt="image-20201122160211676"></p>
-<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160318685.png" alt="image-20201122160318685"></p>
-<h4 id="分片"><a href="#分片" class="headerlink" title="分片"></a>分片</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160453314.png" alt="image-20201122160453314"></p>
+<h2 id="数据库的分库分表"><a href="#数据库的分库分表" class="headerlink" title="数据库的分库分表"></a>数据库的分库分表</h2><h4 id="分库"><a href="#分库" class="headerlink" title="分库"></a>分库</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160211676.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160211676.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201122160211676"></p>
+<p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160318685.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160318685.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201122160318685"></p>
+<h4 id="分片"><a href="#分片" class="headerlink" title="分片"></a>分片</h4><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160453314.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122160453314.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201122160453314"></p>
 <h5 id="如何选择分区键"><a href="#如何选择分区键" class="headerlink" title="如何选择分区键"></a>如何选择分区键</h5><ol>
 <li>分区键要能尽量避免跨分片查询的发生</li>
 <li>分区键要能尽量使各个分片中的数据平均</li>
@@ -1328,231 +1423,1088 @@
 <li>使用全局节点来生成ID</li>
 <li>在Redis等缓存服务器中创建全局ID</li>
 </ol>
-<h2 id="数据库监控"><a href="#数据库监控" class="headerlink" title="数据库监控"></a>数据库监控</h2><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122161248973.png" alt="image-20201122161248973"></p>
+<h2 id="数据库监控"><a href="#数据库监控" class="headerlink" title="数据库监控"></a>数据库监控</h2><p><img src="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122161248973.png" class="lazyload" data-srcset="/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/image-20201122161248973.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" alt="image-20201122161248973"></p>
 
+  
+  
+    
+    <div class='footer'>
+      
+      
+      
+        <div class='copyright'>
+          <blockquote>
+            
+              
+                <p>博客内容遵循 署名-非商业性使用-相同方式共享 4.0 国际 (CC BY-NC-SA 4.0) 协议</p>
+
+              
+            
+              
+                <p>本文永久链接是：<a href=http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/>http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/</a></p>
+              
+            
+          </blockquote>
+        </div>
+      
       
     </div>
-    <div class="article-footer">
-      <blockquote class="mt-2x">
-  <ul class="post-copyright list-unstyled">
+  
+  
     
-    <li class="post-copyright-link hidden-xs">
-      <strong>本文链接：</strong>
-      <a href="http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/" title="MySQL性能管理及架构设计" target="_blank" rel="external">http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/</a>
-    </li>
-    
-    <li class="post-copyright-license">
-      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
-    </li>
-  </ul>
-</blockquote>
 
 
-<div class="panel panel-default panel-badger">
-  <div class="panel-body">
-    <figure class="media">
-      <div class="media-left">
-        <a href="https://github.com/byteprog" target="_blank" class="img-burn thumb-sm visible-lg">
-          <img src="/images/avatar.jpg" class="img-rounded w-full" alt="">
+  <div class='article-meta' id="bottom">
+    <div class='new-meta-box'>
+      
+        
+          <div class="new-meta-item date" itemprop="dateUpdated" datetime="2020-11-22T16:34:29+08:00">
+  <a class='notlink'>
+    <i class="fas fa-edit fa-fw" aria-hidden="true"></i>
+    <p>更新于：2020年11月22日</p>
+  </a>
+</div>
+
+        
+      
+        
+          
+
+        
+      
+        
+          
+  <div class="new-meta-item share -mob-share-list">
+  <div class="-mob-share-list share-body">
+    
+      
+        <a class="-mob-share-qq" title="" rel="external nofollow noopener noreferrer noopener"
+          
+          target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/&title=MySQL性能管理及架构设计 - 乱涂乱画的小站&summary="
+          
+          >
+          
+            <img src="https://cdn.jsdelivr.net/gh/volantis-x/cdn-org/logo/128/qq.png" class="lazyload" data-srcset="https://cdn.jsdelivr.net/gh/volantis-x/cdn-org/logo/128/qq.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=">
+          
         </a>
-      </div>
-      <div class="media-body">
-        <h3 class="media-heading"><a href="https://github.com/byteprog" target="_blank"><span class="text-dark">solocat</span><small class="ml-1x">Developer &amp; Shutterbug</small></a></h3>
-        <div>个人简介。</div>
-      </div>
-    </figure>
+      
+    
+      
+        <a class="-mob-share-qzone" title="" rel="external nofollow noopener noreferrer noopener"
+          
+          target="_blank" href="https://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/&title=MySQL性能管理及架构设计 - 乱涂乱画的小站&summary="
+          
+          >
+          
+            <img src="https://cdn.jsdelivr.net/gh/volantis-x/cdn-org/logo/128/qzone.png" class="lazyload" data-srcset="https://cdn.jsdelivr.net/gh/volantis-x/cdn-org/logo/128/qzone.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=">
+          
+        </a>
+      
+    
+      
+        <a class="-mob-share-weibo" title="" rel="external nofollow noopener noreferrer noopener"
+          
+          target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.postman.life/2020/11/22/MySQL/MySQL%E6%80%A7%E8%83%BD%E7%AE%A1%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/&title=MySQL性能管理及架构设计 - 乱涂乱画的小站&summary="
+          
+          >
+          
+            <img src="https://cdn.jsdelivr.net/gh/volantis-x/cdn-org/logo/128/weibo.png" class="lazyload" data-srcset="https://cdn.jsdelivr.net/gh/volantis-x/cdn-org/logo/128/weibo.png" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=">
+          
+        </a>
+      
+    
+      
+    
+      
+    
   </div>
 </div>
 
 
+
+        
+      
     </div>
+  </div>
+
+
+  
+  
+
+  
+    <div class="prev-next">
+      
+        <a class='prev' href='/2021/05/26/How-to-work-by-tomcat/'>
+          <p class='title'><i class="fas fa-chevron-left" aria-hidden="true"></i>How to work by tomcat</p>
+          <p class='content'>分析Tomcat源码的第一步首先让我们弄懂Tomcat架构体系![](/How-to-work-by-tomcat/Tomcat architecture.jpg)
+The Server：Tom...</p>
+        </a>
+      
+      
+        <a class='next' href='/2020/11/17/MySQL%E5%BF%85%E7%9F%A5%E5%BF%85%E4%BC%9A%E7%AC%94%E8%AE%B0/'>
+          <p class='title'>MySQL必知必会笔记<i class="fas fa-chevron-right" aria-hidden="true"></i></p>
+          <p class='content'>[TOC]
+基础知识与命令表名：相同数据库中不能两次使用相同的表明、不同的数据库中可以
+列: 表中的一个字段、所有表都是由一个或多个列组成
+数据类型：  所容许的数据的类型，每个表列都有相应的数...</p>
+        </a>
+      
+    </div>
+  
+</article>
+
+
+  
+
+  <article class="post white-box reveal shadow" id="comments">
+    <p ct><i class='fas fa-comments'></i> 评论</p>
+    
+    <div id="valine_container" class="valine_thread">
+  <i class="fas fa-cog fa-spin fa-fw fa-2x"></i>
+</div>
+
   </article>
+
+
+
+
+
+
+</div>
+<aside class='l_side'>
+  
   
     
-  <section id="comments">
-  	
-      <div id="vcomments"></div>
     
+
+
+
+  <section class="widget toc-wrapper shadow desktop mobile" id="toc-div" >
+    
+  <header>
+    
+      <i class="fas fa-list fa-fw" aria-hidden="true"></i><span class='name'>本文目录</span>
+    
+  </header>
+
+
+    <div class='content'>
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%83%85%E5%86%B5%E4%BC%9A%E5%BD%B1%E5%93%8D%E6%95%B0%E6%8D%AE%E5%BA%93%E6%80%A7%E8%83%BD"><span class="toc-text">什么情况会影响数据库性能</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A4%A7%E8%A1%A8%E5%AF%B9DDL%E6%93%8D%E4%BD%9C%E7%9A%84%E5%BD%B1%E5%93%8D-%E9%A3%8E%E9%99%A9"><span class="toc-text">大表对DDL操作的影响(风险)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%A4%A7%E4%BA%8B%E5%8A%A1-%E5%A4%A7%E4%BA%8B%E5%8A%A1%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-text">什么是大事务 - 大事务带来的问题</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86%E5%A4%A7%E4%BA%8B%E5%8A%A1"><span class="toc-text">如何处理大事务</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E5%BD%B1%E5%93%8D%E4%BA%86MySQL%E6%80%A7%E8%83%BD"><span class="toc-text">什么影响了MySQL性能</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#CPU%E8%B5%84%E6%BA%90%E5%92%8C%E5%8F%AF%E7%94%A8%E5%86%85%E5%AD%98%E5%A4%A7%E5%B0%8F"><span class="toc-text">CPU资源和可用内存大小</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E7%A3%81%E7%9B%98%E7%9A%84%E9%85%8D%E7%BD%AE%E5%92%8C%E9%80%89%E6%8B%A9"><span class="toc-text">磁盘的配置和选择</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%AF%B9%E6%80%A7%E8%83%BD%E7%9A%84%E5%BD%B1%E5%93%8D"><span class="toc-text">操作系统对性能的影响</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E5%AF%B9%E6%80%A7%E8%83%BD%E7%9A%84%E5%BD%B1%E5%93%8D"><span class="toc-text">文件系统对性能的影响</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#MySQL%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84"><span class="toc-text">MySQL体系结构</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#MyISAM%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E"><span class="toc-text">MyISAM存储引擎</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#InnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E"><span class="toc-text">InnoDB存储引擎</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#MySQL%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%82%E6%95%B0%E4%BB%8B%E7%BB%8D"><span class="toc-text">MySQL服务器参数介绍</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#MySQL%E8%8E%B7%E5%8F%96%E9%85%8D%E7%BD%AE%E4%BF%A1%E6%81%AF%E8%B7%AF%E5%BE%84"><span class="toc-text">MySQL获取配置信息路径</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#MySQL%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0%E7%9A%84%E5%81%9A%E7%94%A8%E5%9F%9F"><span class="toc-text">MySQL配置参数的做用域</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%86%85%E5%AD%98%E9%85%8D%E7%BD%AE%E7%9B%B8%E5%85%B3%E5%8F%82%E6%95%B0"><span class="toc-text">内存配置相关参数</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#I-O%E7%9B%B8%E5%85%B3%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0%EF%BC%88%E5%86%B3%E5%AE%9AMySQL%E5%A6%82%E4%BD%95%E5%90%8C%E6%AD%A5%E7%BC%93%E5%86%B2%E6%B1%A0%E7%9A%84%E6%95%B0%E6%8D%AE%E5%88%B0%E7%A3%81%E7%9B%98%E4%B8%8A%E6%8C%81%E4%B9%85%E5%8C%96%EF%BC%89"><span class="toc-text">I&#x2F;O相关配置参数（决定MySQL如何同步缓冲池的数据到磁盘上持久化）</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E7%BB%93%E6%9E%84%E8%AE%BE%E8%AE%A1%E5%AF%B9%E6%80%A7%E8%83%BD%E7%9A%84%E5%BD%B1%E5%93%8D%EF%BC%88%E5%AF%B9%E6%80%A7%E8%83%BD%E5%BD%B1%E5%93%8D%E6%AF%94%E8%BE%83%E5%A4%A7%EF%BC%89"><span class="toc-text">数据库结构设计对性能的影响（对性能影响比较大）</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E5%BD%B1%E5%93%8D%E4%BA%86%E6%80%A7%E8%83%BD"><span class="toc-text">什么影响了性能</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-text">总结</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MySQL%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95"><span class="toc-text">MySQL基准测试</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95"><span class="toc-text">什么是基准测试</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E7%9A%84%E7%9B%AE%E7%9A%84"><span class="toc-text">基准测试的目的</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E7%9A%84%E7%AD%96%E7%95%A5"><span class="toc-text">基准测试的策略</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E9%92%88%E5%AF%B9%E6%95%B4%E4%B8%AA%E7%B3%BB%E7%BB%9F%E5%81%9A%E9%9B%86%E6%88%90%E5%BC%8F%E6%B5%8B%E8%AF%95%EF%BC%8C%E8%80%8C%E4%B8%8D%E6%98%AF%E5%8D%95%E7%8B%AC%E6%B5%8B%E8%AF%95MySQL%EF%BC%9A"><span class="toc-text">为什么要针对整个系统做集成式测试，而不是单独测试MySQL：</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%8D%95%E7%8B%AC%E6%B5%8B%E8%AF%95MySQL-%EF%BC%9A"><span class="toc-text">单独测试MySQL****：</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#MySQL%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E7%9A%84%E5%B8%B8%E8%A7%81%E6%8C%87%E6%A0%87"><span class="toc-text">MySQL基准测试的常见指标</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E7%9A%84%E6%AD%A5%E9%AA%A4"><span class="toc-text">基准测试的步骤</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86%E8%84%9A%E6%9C%AC-CPU%E4%BD%BF%E7%94%A8%E7%8E%87%E3%80%81IO%E3%80%81%E7%BD%91%E7%BB%9C%E6%B5%81%E9%87%8F%E3%80%81%E7%8A%B6%E6%80%81%E4%B8%8E%E8%AE%A1%E6%95%B0%E5%99%A8%E4%BF%A1%E6%81%AF%E7%AD%89"><span class="toc-text">信息收集脚本 - CPU使用率、IO、网络流量、状态与计数器信息等</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%88%86%E6%9E%90%E8%84%9A%E6%9C%AC"><span class="toc-text">分析脚本</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E6%96%B9%E6%B3%95%E9%81%BF%E5%85%8D%E4%BB%A5%E4%B8%8B%E5%B8%B8%E8%A7%81%E7%9A%84%E9%94%99%E8%AF%AF"><span class="toc-text">基准测试方法避免以下常见的错误</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#MySQL%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E5%B7%A5%E5%85%B7%E4%B9%8Bmysqlslap"><span class="toc-text">MySQL基准测试工具之mysqlslap</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8%E5%8F%82%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="toc-text">常用参数说明</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#MySQL%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E5%B7%A5%E4%BD%9C%E4%B9%8B-sysbench"><span class="toc-text">MySQL基准测试工作之 sysbench</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E7%BB%93%E6%9E%84%E4%BC%98%E5%8C%96"><span class="toc-text">数据库结构优化</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E7%BB%93%E6%9E%84%E4%BC%98%E5%8C%96%E7%9A%84%E7%9B%AE%E7%9A%84"><span class="toc-text">数据库结构优化的目的</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E7%BB%93%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%9A%84%E6%AD%A5%E9%AA%A4"><span class="toc-text">数据库结构设计的步骤</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E9%9C%80%E6%B1%82%E5%88%86%E6%9E%90%EF%BC%9A"><span class="toc-text">需求分析：</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E9%80%BB%E8%BE%91%E8%AE%BE%E8%AE%A1%EF%BC%9A"><span class="toc-text">逻辑设计：</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E7%89%A9%E7%90%86%E8%AE%BE%E8%AE%A1%EF%BC%9A"><span class="toc-text">物理设计：</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E7%BB%B4%E6%8A%A4%E4%BC%98%E5%8C%96"><span class="toc-text">维护优化</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E8%AE%BE%E8%AE%A1%E8%8C%83%E5%BC%8F"><span class="toc-text">数据库设计范式</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E8%8C%83%E5%BC%8F%E5%92%8C%E5%8F%8D%E8%8C%83%E5%BC%8F%EF%BC%88%E6%95%B0%E6%8D%AE%E7%9A%84%E8%A1%A8%E7%A4%BA%E6%96%B9%E6%B3%95%EF%BC%89"><span class="toc-text">范式和反范式（数据的表示方法）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E9%9C%80%E6%B1%82%E5%88%86%E6%9E%90%E5%8F%8A%E9%80%BB%E8%BE%91%E8%AE%BE%E8%AE%A1-%E8%8C%83%E5%BC%8F%E5%8C%96"><span class="toc-text">需求分析及逻辑设计  - 范式化</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E9%9C%80%E6%B1%82%E5%88%86%E6%9E%90%E5%8F%8A%E9%80%BB%E8%BE%91%E8%AE%BE%E8%AE%A1-%E5%8F%8D%E8%8C%83%E5%BC%8F%E5%8C%96"><span class="toc-text">需求分析及逻辑设计  - 反范式化</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E8%8C%83%E5%BC%8F%E7%9A%84%E4%BC%98%E7%82%B9%E5%92%8C%E7%BC%BA%E7%82%B9"><span class="toc-text">范式的优点和缺点</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%8F%8D%E8%8C%83%E5%BC%8F%E7%9A%84%E4%BC%98%E7%82%B9%E5%92%8C%E7%BC%BA%E7%82%B9"><span class="toc-text">反范式的优点和缺点</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%B7%B7%E7%94%A8%E8%8C%83%E5%BC%8F%E5%8C%96%E5%92%8C%E5%8F%8D%E8%8C%83%E5%BC%8F%E5%8C%96"><span class="toc-text">混用范式化和反范式化</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BC%93%E5%AD%98%E8%A1%A8%E5%92%8C%E6%B1%87%E6%80%BB%E8%A1%A8"><span class="toc-text">缓存表和汇总表</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%89%A9%E7%90%86%E8%AE%BE%E8%AE%A1"><span class="toc-text">物理设计</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%AE%9A%E4%B9%89%E6%95%B0%E6%8D%AE%E5%BA%93%E3%80%81%E8%A1%A8%E5%8F%8A%E5%AD%97%E6%AE%B5%E7%9A%84%E5%91%BD%E5%90%8D%E8%A7%84%E8%8C%83"><span class="toc-text">定义数据库、表及字段的命名规范</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E9%80%89%E6%8B%A9%E5%90%88%E9%80%82%E7%9A%84%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E"><span class="toc-text">选择合适的存储引擎</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%B8%BA%E8%A1%A8%E4%B8%AD%E7%9A%84%E5%AD%97%E6%AE%B5%E9%80%89%E6%8B%A9%E5%90%88%E9%80%82%E7%9A%84%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B"><span class="toc-text">为表中的字段选择合适的数据类型</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E9%80%89%E6%8B%A9%E6%AD%A3%E7%A1%AE%E7%9A%84%E6%95%B4%E6%95%B0%E7%B1%BB%E5%9E%8B"><span class="toc-text">如何选择正确的整数类型</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E9%80%89%E6%8B%A9%E6%AD%A3%E7%A1%AE%E7%9A%84%E5%AE%9E%E6%95%B0%E7%B1%BB%E5%9E%8B"><span class="toc-text">如何选择正确的实数类型</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E9%80%89%E6%8B%A9VARCHAR"><span class="toc-text">如何选择VARCHAR</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E9%80%89%E6%8B%A9CHAR%E7%B1%BB%E5%9E%8B"><span class="toc-text">如何选择CHAR类型</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E9%80%89%E6%8B%A9%E5%AD%98%E5%82%A8%E6%97%A5%E6%9C%9F%E6%95%B0%E6%8D%AE"><span class="toc-text">如何选择存储日期数据</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%AD%98%E5%82%A8%E6%97%A5%E6%9C%9F%E6%97%B6%E9%97%B4%E6%95%B0%E6%8D%AE%E7%9A%84%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="toc-text">存储日期时间数据的注意事项</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E7%89%A9%E7%90%86%E8%AE%BE%E8%AE%A1%E6%80%BB%E7%BB%93"><span class="toc-text">物理设计总结</span></a></li></ol></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MySQL%E9%AB%98%E5%8F%AF%E7%94%A8%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1"><span class="toc-text">MySQL高可用架构设计</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#MySQL%E5%A4%8D%E5%88%B6%E5%8A%9F%E8%83%BD"><span class="toc-text">MySQL复制功能</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A4%8D%E5%88%B6%E8%A7%A3%E5%86%B3%E4%BA%86%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="toc-text">复制解决了什么问题</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#MySQL%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%97%A5%E5%BF%97"><span class="toc-text">MySQL二进制日志</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%97%A5%E5%BF%97%E7%9A%84%E6%A0%BC%E5%BC%8F"><span class="toc-text">二进制日志的格式</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E9%80%89%E6%8B%A9%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%97%A5%E5%BF%97%E7%9A%84%E6%A0%BC%E5%BC%8F%E5%BB%BA%E8%AE%AE"><span class="toc-text">如何选择二进制日志的格式建议</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#MySQL%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%97%A5%E5%BF%97%E6%A0%BC%E5%BC%8F%E5%AF%B9%E5%A4%8D%E5%88%B6%E7%9A%84%E5%BD%B1%E5%93%8D"><span class="toc-text">MySQL二进制日志格式对复制的影响</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%B8%BB%E5%BA%93%E5%A4%8D%E5%88%B6%E6%A8%A1%E5%BC%8F"><span class="toc-text">主库复制模式</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%9F%BA%E4%BA%8ESQL%E8%AF%AD%E5%8F%A5%E7%9A%84%E5%A4%8D%E5%88%B6%EF%BC%88SBR%EF%BC%89"><span class="toc-text">基于SQL语句的复制（SBR）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%9F%BA%E4%BA%8E%E8%A1%8C%E7%9A%84%E5%A4%8D%E5%88%B6%EF%BC%88RBR%EF%BC%89"><span class="toc-text">基于行的复制（RBR）</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#MySQL%E5%A4%8D%E5%88%B6%E5%B7%A5%E4%BD%9C%E6%96%B9%E5%BC%8F"><span class="toc-text">MySQL复制工作方式</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%9F%BA%E4%BA%8EGTID%E5%A4%8D%E5%88%B6%E7%9A%84%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="toc-text">基于GTID复制的优缺点</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#MySQL%E5%A4%8D%E5%88%B6%E6%8B%93%E6%89%91"><span class="toc-text">MySQL复制拓扑</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E9%AB%98%E5%8F%AF%E7%94%A8"><span class="toc-text">什么是高可用</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E9%81%BF%E5%85%8DMySQL%E5%8D%95%E7%82%B9%E6%95%85%E9%9A%9C"><span class="toc-text">如何避免MySQL单点故障</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#MMM%E6%9E%B6%E6%9E%84"><span class="toc-text">MMM架构</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B4%A2%E5%BC%95%E4%BC%98%E5%8C%96"><span class="toc-text">数据库索引优化</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%B4%A2%E5%BC%95%E7%9A%84%E7%B1%BB%E5%9E%8B"><span class="toc-text">索引的类型</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#B-Tree%E7%B4%A2%E5%BC%95"><span class="toc-text">B-Tree索引</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%B8%8B%E9%9D%A2%E6%98%AF%E4%B8%80%E4%BA%9B%E5%85%B3%E4%BA%8EB-Tree%E7%B4%A2%E5%BC%95%E7%9A%84%E9%99%90%E5%88%B6"><span class="toc-text">下面是一些关于B-Tree索引的限制:</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%93%88%E5%B8%8C%E7%B4%A2%E5%BC%95"><span class="toc-text">哈希索引</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E7%A9%BA%E9%97%B4%E6%95%B0%E6%8D%AE%E7%B4%A2%E5%BC%95%EF%BC%88R-TREE%EF%BC%89"><span class="toc-text">空间数据索引（R-TREE）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%85%A8%E6%96%87%E7%B4%A2%E5%BC%95"><span class="toc-text">全文索引</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E7%B4%A2%E5%BC%95"><span class="toc-text">其他索引</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%B4%A2%E5%BC%95%E7%9A%84%E4%BC%98%E7%82%B9"><span class="toc-text">索引的优点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%AB%98%E6%80%A7%E8%83%BD%E7%9A%84%E7%B4%A2%E5%BC%95%E7%AD%96%E7%95%A5"><span class="toc-text">高性能的索引策略</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E7%8B%AC%E7%AB%8B%E7%9A%84%E5%88%97"><span class="toc-text">独立的列</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%89%8D%E7%BC%80%E7%B4%A2%E5%BC%95%E5%92%8C%E7%B4%A2%E5%BC%95%E9%80%89%E6%8B%A9%E6%80%A7"><span class="toc-text">前缀索引和索引选择性</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E8%81%94%E5%90%88%E7%B4%A2%E5%BC%95"><span class="toc-text">联合索引</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E8%81%9A%E7%B0%87%E7%B4%A2%E5%BC%95"><span class="toc-text">聚簇索引</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E8%A6%86%E7%9B%96%E7%B4%A2%E5%BC%95"><span class="toc-text">覆盖索引</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E7%B4%A2%E5%BC%95%E6%89%AB%E6%8F%8F%E6%9D%A5%E5%81%9A%E6%8E%92%E5%BA%8F"><span class="toc-text">使用索引扫描来做排序</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%A8%A1%E6%8B%9FHash%E7%B4%A2%E5%BC%95%E4%BC%98%E5%8C%96%E6%9F%A5%E8%AF%A2-%EF%BC%88%E4%BD%BF%E7%94%A8BTree%E7%B4%A2%E5%BC%95%E6%A8%A1%E6%8B%9FHash%EF%BC%89"><span class="toc-text">模拟Hash索引优化查询  （使用BTree索引模拟Hash）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E7%B4%A2%E5%BC%95%E4%BC%98%E5%8C%96%E9%94%81"><span class="toc-text">利用索引优化锁</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%8E%8B%E7%BC%A9"><span class="toc-text">压缩</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%86%97%E4%BD%99%E5%92%8C%E9%87%8D%E5%A4%8D%E7%B4%A2%E5%BC%95"><span class="toc-text">冗余和重复索引</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%9F%A5%E6%89%BE%E6%9C%AA%E4%BD%BF%E7%94%A8%E7%9A%84%E7%B4%A2%E5%BC%95"><span class="toc-text">查找未使用的索引</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%9B%B4%E6%96%B0%E7%B4%A2%E5%BC%95%E7%9A%84%E7%BB%9F%E8%AE%A1%E4%BF%A1%E6%81%AF%E5%8F%8A%E5%87%8F%E5%B0%91%E7%B4%A2%E5%BC%95%E7%A2%8E%E7%89%87"><span class="toc-text">更新索引的统计信息及减少索引碎片</span></a></li></ol></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SQL%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96"><span class="toc-text">SQL查询优化</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E8%8E%B7%E5%8F%96%E6%9C%89%E6%80%A7%E8%83%BD%E9%97%AE%E9%A2%98%E7%9A%84SQL"><span class="toc-text">如何获取有性能问题的SQL</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%85%A2%E6%9F%A5%E8%AF%A2%E6%97%A5%E5%BF%97%E4%BB%8B%E7%BB%8D"><span class="toc-text">慢查询日志介绍</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%BC%9A%E8%AE%B0%E5%BD%95%E5%93%AA%E4%BA%9B%E8%AF%AD%E5%8F%A5%EF%BC%9F"><span class="toc-text">会记录哪些语句？</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8%E7%9A%84%E6%85%A2%E6%9F%A5%E6%97%A5%E5%BF%97%E5%88%86%E6%9E%90%E5%B7%A5%E5%85%B7-mysqldumpslow"><span class="toc-text">常用的慢查日志分析工具 (mysqldumpslow)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%AE%9E%E6%97%B6%E8%8E%B7%E5%8F%96%E6%80%A7%E8%83%BD%E9%97%AE%E9%A2%98SQL"><span class="toc-text">实时获取性能问题SQL</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SQL%E7%9A%84%E8%A7%A3%E6%9E%90%E9%A2%84%E5%A4%84%E7%90%86%E5%8F%8A%E7%94%9F%E6%88%90%E6%89%A7%E8%A1%8C%E8%AE%A1%E5%88%92"><span class="toc-text">SQL的解析预处理及生成执行计划</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9F%A5%E8%AF%A2%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E6%85%A2%EF%BC%88MySQL%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%A4%84%E7%90%86%E6%9F%A5%E8%AF%A2%E8%AF%B7%E6%B1%82%E7%9A%84%E8%BF%87%E7%A8%8B%EF%BC%89%EF%BC%9F"><span class="toc-text">查询为什么会慢（MySQL服务器处理查询请求的过程）？</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E7%A1%AE%E5%AE%9A%E6%9F%A5%E8%AF%A2%E5%A4%84%E7%90%86%E5%90%84%E4%B8%AA%E9%98%B6%E6%AE%B5%E6%89%80%E6%B6%88%E8%80%97%E7%9A%84%E6%97%B6%E9%97%B4"><span class="toc-text">如何确定查询处理各个阶段所消耗的时间</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8profile"><span class="toc-text">使用profile</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8performance-schema%EF%BC%88%E5%BB%BA%E8%AE%AE%EF%BC%89"><span class="toc-text">使用performance_schema（建议）</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%89%B9%E5%AE%9ASQL%E7%9A%84%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96"><span class="toc-text">特定SQL的查询优化</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A4%A7%E8%A1%A8%E7%9A%84%E6%9B%B4%E6%96%B0%E5%92%8C%E5%88%A0%E9%99%A4"><span class="toc-text">大表的更新和删除</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E4%BF%AE%E6%94%B9%E5%A4%A7%E8%A1%A8%E7%9A%84%E7%BB%93%E6%9E%84"><span class="toc-text">如何修改大表的结构</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E7%9A%84%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8"><span class="toc-text">数据库的分库分表</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%88%86%E5%BA%93"><span class="toc-text">分库</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%88%86%E7%89%87"><span class="toc-text">分片</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E9%80%89%E6%8B%A9%E5%88%86%E5%8C%BA%E9%94%AE"><span class="toc-text">如何选择分区键</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E5%AD%98%E5%82%A8%E6%97%A0%E9%9C%80%E5%88%86%E7%89%87%E7%9A%84%E8%A1%A8"><span class="toc-text">如何存储无需分片的表</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E5%9C%A8%E8%8A%82%E7%82%B9%E4%B8%8A%E9%83%A8%E7%BD%B2%E5%88%86%E7%89%87"><span class="toc-text">如何在节点上部署分片</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E5%88%86%E9%85%8D%E5%88%86%E7%89%87%E4%B8%AD%E7%9A%84%E6%95%B0%E6%8D%AE"><span class="toc-text">如何分配分片中的数据</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E7%94%9F%E6%88%90%E5%85%A8%E5%B1%80%E5%94%AF%E4%B8%80ID"><span class="toc-text">如何生成全局唯一ID</span></a></li></ol></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E7%9B%91%E6%8E%A7"><span class="toc-text">数据库监控</span></a></li></ol>
+    </div>
   </section>
 
 
   
-</div>
 
-  <nav class="bar bar-footer clearfix" data-stick-bottom>
-  <div class="bar-inner">
+
+</aside>
+
+
+
+		  
+		  <!--此文件用来存放一些不方便取值的变量-->
+<!--思路大概是将值藏到重加载的区域内-->
+
+<script>
+  window.pdata={}
+  pdata.ispage=true;
+  pdata.postTitle="MySQL性能管理及架构设计";
+  pdata.commentPath="";
+  pdata.commentPlaceholder="";
+  // header 这里无论是否开启pjax都需要
+  var l_header=document.getElementById("l_header");
   
-  <ul class="pager pull-left">
-    
-    <li class="prev">
-      <a href="/2021/05/26/How-to-work-by-tomcat/" title="How to work by tomcat"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
-    </li>
-    
-    
-    <li class="next">
-      <a href="/2020/11/17/MySQL%E5%BF%85%E7%9F%A5%E5%BF%85%E4%BC%9A%E7%AC%94%E8%AE%B0/" title="MySQL必知必会笔记"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
-    </li>
-    
-    
-  </ul>
-  
-  
-  <!-- Button trigger modal -->
-  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>$</span></button>
-  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
-    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
-  </div> -->
+  l_header.classList.add("show");
   
   
-  <div class="bar-right">
+    // cover
+    var cover_wrapper=document.querySelector('.cover-wrapper');
     
-    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    cover_wrapper.id="none";
+    cover_wrapper.style.display="none";
     
-  </div>
-  </div>
-</nav>
   
-<!-- Modal -->
-<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content donate">
-      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-      <div class="modal-body">
-        <div class="donate-box">
-          <div class="donate-head">
-            <p>Maybe you could buy me a cup of coffee.</p>
-          </div>
-          <div class="tab-content">
-            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
-              <div class="donate-payimg">
-                <img src="/images/donate/alipayimg.png" alt="Scan Qrcode" title="Scan" />
-              </div>
-              <p class="text-muted mv">Scan this qrcode</p>
-              <p class="text-grey">Open alipay app scan this qrcode, buy me a coffee!</p>
-            </div>
-            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
-              <div class="donate-payimg">
-                <img src="/images/donate/wechatpayimg.png" alt="Scan Qrcode" title="Scan" />
-              </div>
-              <p class="text-muted mv">Scan this qrcode</p>
-              <p class="text-grey">Open wechat app scan this qrcode, buy me a coffee!</p>
-            </div>
-          </div>
-          <div class="donate-footer">
-            <ul class="nav nav-tabs nav-justified" role="tablist">
-              <li role="presentation" class="active">
-                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> alipay</a>
-              </li>
-              <li role="presentation" class="">
-                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> wechat payment</a>
-              </li>
-            </ul>
-          </div>
+</script>
+
         </div>
+        
+  
+  <footer class="footer clearfix">
+    <br><br>
+    
+      
+        <div class="aplayer-container">
+          
+
+
+        </div>
+      
+    
+      
+        <br>
+        <div class="social-wrapper">
+          
+            
+          
+            
+          
+            
+          
+        </div>
+      
+    
+      
+        <div><p>博客内容遵循 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh">署名-非商业性使用-相同方式共享 4.0 国际 (CC BY-NC-SA 4.0) 协议</a></p>
+</div>
+      
+    
+      
+        
+          <div><p><span id="lc-sv">本站总访问量为 <span id='number'><i class="fas fa-circle-notch fa-spin fa-fw" aria-hidden="true"></i></span> 次</span> <span id="lc-uv">访客数为 <span id='number'><i class="fas fa-circle-notch fa-spin fa-fw" aria-hidden="true"></i></span> 人</span></p>
+</div>
+        
+      
+    
+      
+        本站使用
+        <a href="https://github.com/volantis-x/hexo-theme-volantis/tree/4.3.1" target="_blank" class="codename">Volantis</a>
+        作为主题
+      
+    
+      
+        <div class='copyright'>
+        <p><a href="/">Copyright © 2020-2021 XXX</a></p>
+
+        </div>
+      
+    
+  </footer>
+
+
+        <a id="s-top" class="fas fa-arrow-up fa-fw" href="javascript:void(0)"></a>
       </div>
     </div>
-  </div>
-</div>
-
-
-
-</main>
-
-  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
-	
-	
-    <ul class="social-links">
-    	
-        <li><a href="https://github.com/byteprog" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
-        
-        <li><a href="http://weibo.com/" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
-        
-        <li><a href="https://twitter.com/" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
-        
-        <li><a href="https://www.behance.net/" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
-        
-        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
-        
-    </ul>
-
-    <div class="copyright">
-    	
-        <div class="publishby">
-        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
-        </div>
-    </div>
-</footer>
-  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+    <div>
+      <script>
+/************这个文件存放不需要重载的全局变量和全局函数*********/
+window.volantis={};
+window.volantis.loadcss=document.getElementById("loadcss");
+/******************** Pjax ********************************/
+function VPjax(){
+	this.list=[] // 存放回调函数
+	this.start=()=>{
+	  for(var i=0;i<this.list.length;i++){
+		this.list[i].run();
+	  }
+	}
+	this.push=(fn,name)=>{
+		var f=new PjaxItem(fn,name);
+		this.list.push(f);
+	}
+	// 构造一个可以run的对象
+	function PjaxItem(fn,name){
+		// 函数名称
+		this.name = name || fn.name
+		// run方法
+		this.run=()=>{
+			fn()
+		}
+	}
+}
+volantis.pjax={}
+volantis.pjax.method={
+	complete: new VPjax(),
+	error: new VPjax(),
+	send: new VPjax()
+}
+volantis.pjax={
+	...volantis.pjax,
+	push: volantis.pjax.method.complete.push,
+	error: volantis.pjax.method.error.push,
+	send: volantis.pjax.method.send.push
+}
+/********************脚本懒加载函数********************************/
+// 已经加入了setTimeout
+function loadScript(src, cb) {
+	setTimeout(function() {
+		var HEAD = document.getElementsByTagName('head')[0] || document.documentElement;
+		var script = document.createElement('script');
+		script.setAttribute('type','text/javascript');
+		if (cb) script.onload = cb;
+		script.setAttribute('src', src);
+		HEAD.appendChild(script);
+	});
+}
+//https://github.com/filamentgroup/loadCSS
+var loadCSS = function( href, before, media, attributes ){
+	var doc = window.document;
+	var ss = doc.createElement( "link" );
+	var ref;
+	if( before ){
+		ref = before;
+	}
+	else {
+		var refs = ( doc.body || doc.getElementsByTagName( "head" )[ 0 ] ).childNodes;
+		ref = refs[ refs.length - 1];
+	}
+	var sheets = doc.styleSheets;
+	if( attributes ){
+		for( var attributeName in attributes ){
+			if( attributes.hasOwnProperty( attributeName ) ){
+				ss.setAttribute( attributeName, attributes[attributeName] );
+			}
+		}
+	}
+	ss.rel = "stylesheet";
+	ss.href = href;
+	ss.media = "only x";
+	function ready( cb ){
+		if( doc.body ){
+			return cb();
+		}
+		setTimeout(function(){
+			ready( cb );
+		});
+	}
+	ready( function(){
+		ref.parentNode.insertBefore( ss, ( before ? ref : ref.nextSibling ) );
+	});
+	var onloadcssdefined = function( cb ){
+		var resolvedHref = ss.href;
+		var i = sheets.length;
+		while( i-- ){
+			if( sheets[ i ].href === resolvedHref ){
+				return cb();
+			}
+		}
+		setTimeout(function() {
+			onloadcssdefined( cb );
+		});
+	};
+	function loadCB(){
+		if( ss.addEventListener ){
+			ss.removeEventListener( "load", loadCB );
+		}
+		ss.media = media || "all";
+	}
+	if( ss.addEventListener ){
+		ss.addEventListener( "load", loadCB);
+	}
+	ss.onloadcssdefined = onloadcssdefined;
+	onloadcssdefined( loadCB );
+	return ss;
+};
+</script>
 <script>
-window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+  
+  loadCSS("https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.14/css/all.min.css", window.volantis.loadcss);
+  
+  
+  
+  
+</script>
+<!-- required -->
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5/dist/jquery.min.js"></script>
+
+<script>
+  function pjax_fancybox() {
+    $(".md .gallery").find("img").each(function () { //渲染 fancybox
+      var element = document.createElement("a"); // a 标签
+      $(element).attr("class", "fancybox");
+      $(element).attr("pjax-fancybox", "");  // 过滤 pjax
+      $(element).attr("href", $(this).attr("src"));
+      if ($(this).attr("data-original")) {
+        $(element).attr("href", $(this).attr("data-original"));
+      }
+      $(element).attr("data-fancybox", "images");
+      var caption = "";   // 描述信息
+      if ($(this).attr('alt')) {  // 判断当前页面是否存在描述信息
+        $(element).attr('data-caption', $(this).attr('alt'));
+        caption = $(this).attr('alt');
+      }
+      var div = document.createElement("div");
+      $(div).addClass("fancybox");
+      $(this).wrap(div); // 最外层套 div ，其实主要作用还是 class 样式
+      var span = document.createElement("span");
+      $(span).addClass("image-caption");
+      $(span).text(caption); // 加描述
+      $(this).after(span);  // 再套一层描述
+      $(this).wrap(element);  // 最后套 a 标签
+    })
+    $(".md .gallery").find("img").fancybox({
+      selector: '[data-fancybox="images"]',
+      hash: false,
+      loop: false,
+      closeClick: true,
+      helpers: {
+        overlay: {closeClick: true}
+      },
+      buttons: [
+        "zoom",
+        "close"
+      ]
+    });
+  };
+  function SCload_fancybox() {
+    if ($(".md .gallery").find("img").length == 0) return;
+    loadCSS("https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css", document.getElementById("loadcss"));
+    loadScript('https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js', pjax_fancybox)
+  };
+  $(function () {
+    SCload_fancybox();
+  });
+  function Pjax_SCload_fancybox(){
+	if (typeof $.fancybox == "undefined") {
+	 SCload_fancybox();
+    } else {
+	 pjax_fancybox();
+    }
+  }
+  volantis.pjax.push(Pjax_SCload_fancybox)
+  volantis.pjax.send(()=>{
+      if (typeof $.fancybox != "undefined") {
+        $.fancybox.close();    // 关闭弹窗
+      }
+  },'fancybox')
 </script>
 
-<script src="/js/plugin.min.js"></script>
+
+<!-- internal -->
 
 
-<script src="/js/application.js"></script>
 
 
-    <script>
-(function (window) {
-    var INSIGHT_CONFIG = {
-        TRANSLATION: {
-            POSTS: 'Posts',
-            PAGES: 'Pages',
-            CATEGORIES: 'Categories',
-            TAGS: 'Tags',
-            UNTITLED: '(Untitled)',
-        },
-        ROOT_URL: '/',
-        CONTENT_URL: '/content.json',
-    };
-    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
-})(window);
+<script>
+  function loadIssuesJS() {
+    if ($(".md").find(".issues-api").length == 0) return;
+	
+	  loadScript('/js/issues.js');
+	
+  };
+  $(function () {
+    loadIssuesJS();
+  });
+  volantis.pjax.push(()=>{
+	if (typeof IssuesAPI == "undefined") {
+	  loadIssuesJS();
+	}
+  },"IssuesJS")
 </script>
 
-<script src="/js/insight.js"></script>
 
 
-
-
-
-
-   
-
-
-
-
-   
-    
-  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
-  <script src="//cdn.jsdelivr.net/npm/valine"></script>
-  <script type="text/javascript">
-  var GUEST = ['nick', 'mail', 'link'];
-  var meta = 'nick,mail,link';
-  meta = meta.split(',').filter(function(item) {
-    return GUEST.indexOf(item) > -1;
+  <script defer src="https://cdn.jsdelivr.net/npm/vanilla-lazyload@17.1.0/dist/lazyload.min.js"></script>
+<script>
+  // https://www.npmjs.com/package/vanilla-lazyload
+  // Set the options globally
+  // to make LazyLoad self-initialize
+  window.lazyLoadOptions = {
+    elements_selector: ".lazyload",
+    threshold: 0
+  };
+  // Listen to the initialization event
+  // and get the instance of LazyLoad
+  window.addEventListener(
+    "LazyLoad::Initialized",
+    function (event) {
+      window.lazyLoadInstance = event.detail.instance;
+    },
+    false
+  );
+  document.addEventListener('DOMContentLoaded', function () {
+    lazyLoadInstance.update();
   });
-  new Valine({
-    el: '#vcomments',
-    verify: false,
-    notify: false,
-    appId: '',
-    appKey: '',
-    placeholder: 'Just go go',
-    avatar: 'mm',
-    meta: meta,
-    pageSize: '10' || 10,
-    visitor: false
+  document.addEventListener('pjax:complete', function () {
+    lazyLoadInstance.update();
   });
-  </script>
-
-     
+</script>
 
 
 
 
+  
+
+<script>
+  window.FPConfig = {
+	delay: 0,
+	ignoreKeywords: [],
+	maxRPS: 5,
+	hoverDelay: 25
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"></script>
 
 
 
-</body>
+
+
+
+
+
+
+
+
+  
+  
+<script src="/js/valine.js"></script>
+
+
+<script>
+  function emoji(path, idx, ext) {
+    return path + "/" + path + "-" + idx + "." + ext;
+  }
+  var emojiMaps = {};
+  for (var i = 1; i <= 54; i++) {
+    emojiMaps['tieba-' + i] = emoji('tieba', i, 'png');
+  }
+  for (var i = 1; i <= 101; i++) {
+    emojiMaps['qq-' + i] = emoji('qq', i, 'gif');
+  }
+  for (var i = 1; i <= 116; i++) {
+    emojiMaps['aru-' + i] = emoji('aru', i, 'gif');
+  }
+  for (var i = 1; i <= 125; i++) {
+    emojiMaps['twemoji-' + i] = emoji('twemoji', i, 'png');
+  }
+  for (var i = 1; i <= 4; i++) {
+    emojiMaps['weibo-' + i] = emoji('weibo', i, 'png');
+  }
+  function pjax_valine() {
+    if(!document.querySelectorAll("#valine_container")[0])return;
+    let pagePlaceholder = pdata.commentPlaceholder || "快来评论吧~";
+    let path = pdata.commentPath;
+    if (path.length == 0) {
+      let defaultPath = '';
+      path = defaultPath || decodeURI(window.location.pathname);
+    }
+    var valine = new Valine();
+    valine.init(Object.assign({"path":null,"placeholder":"快来评论吧~","appId":null,"appKey":null,"meta":["nick","mail","link"],"requiredFields":["nick","mail"],"enableQQ":true,"recordIP":false,"avatar":"robohash","pageSize":10,"lang":"zh-cn","highlight":true,"mathJax":false}, {
+      el: '#valine_container',
+      path: path,
+      placeholder: pagePlaceholder,
+      emojiCDN: 'https://cdn.jsdelivr.net/gh/volantis-x/cdn-emoji/valine/',
+      emojiMaps: emojiMaps,
+    }))
+  }
+  $(function () {
+    pjax_valine();
+  });
+  volantis.pjax.push(pjax_valine);
+</script>
+
+
+
+
+
+
+  
+<script src="/js/app.js"></script>
+
+
+
+<!-- optional -->
+
+  <script>
+const SearchServiceimagePath="https://cdn.jsdelivr.net/gh/volantis-x/cdn-volantis@master/img/";
+const ROOT =  ("/" || "/").endsWith('/') ? ("/" || "/") : ("//" || "/" );
+
+$('.input.u-search-input').one('focus',function(){
+	
+		loadScript('/js/search/hexo.js',setSearchService);
+	
+})
+
+function listenSearch(){
+  
+    customSearch = new HexoSearch({
+      imagePath: SearchServiceimagePath
+    });
+  
+}
+function setSearchService() {
+	listenSearch();
+	
+}
+</script>
+
+
+
+
+
+
+
+
+
+
+
+  <script defer>
+
+  const LCCounter = {
+    app_id: 'u9j57bwJod4EDmXWdxrwuqQT-MdYXbMMI',
+    app_key: 'jfHtEKVE24j0IVCGHbvuFClp',
+    custom_api_server: '',
+
+    // 查询存储的记录
+    getRecord(Counter, url, title) {
+      return new Promise(function (resolve, reject) {
+        Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({url})))
+          .then(resp => resp.json())
+          .then(({results, code, error}) => {
+            if (code === 401) {
+              throw error;
+            }
+            if (results && results.length > 0) {
+              var record = results[0];
+              resolve(record);
+            } else {
+              Counter('post', '/classes/Counter', {url, title: title, times: 0})
+                .then(resp => resp.json())
+                .then((record, error) => {
+                  if (error) {
+                    throw error;
+                  }
+                  resolve(record);
+                }).catch(error => {
+                console.error('Failed to create', error);
+                reject(error);
+              });
+            }
+          }).catch((error) => {
+          console.error('LeanCloud Counter Error:', error);
+          reject(error);
+        });
+      })
+    },
+
+    // 发起自增请求
+    increment(Counter, incrArr) {
+      return new Promise(function (resolve, reject) {
+        Counter('post', '/batch', {
+          "requests": incrArr
+        }).then((res) => {
+          res = res.json();
+          if (res.error) {
+            throw res.error;
+          }
+          resolve(res);
+        }).catch((error) => {
+          console.error('Failed to save visitor count', error);
+          reject(error);
+        });
+      });
+    },
+
+    // 构建自增请求体
+    buildIncrement(objectId) {
+      return {
+        "method": "PUT",
+        "path": `/1.1/classes/Counter/${ objectId }`,
+        "body": {
+          "times": {
+            '__op': 'Increment',
+            'amount': 1
+          }
+        }
+      }
+    },
+
+    // 校验是否为有效的 UV
+    validUV() {
+      var key = 'LeanCloudUVTimestamp';
+      var flag = localStorage.getItem(key);
+      if (flag) {
+        // 距离标记小于 24 小时则不计为 UV
+        if (new Date().getTime() - parseInt(flag) <= 86400000) {
+          return false;
+        }
+      }
+      localStorage.setItem(key, new Date().getTime().toString());
+      return true;
+    },
+
+    addCount(Counter) {
+      var enableIncr = '' === 'true' && window.location.hostname !== 'localhost';
+      enableIncr = true;
+      var getterArr = [];
+      var incrArr = [];
+      // 请求 PV 并自增
+      var pvCtn = document.querySelector('#lc-sv');
+      if (pvCtn || enableIncr) {
+        var pvGetter = this.getRecord(Counter, 'http://www.postman.life' + '/#lc-sv', 'Visits').then((record) => {
+          incrArr.push(this.buildIncrement(record.objectId))
+          var eles = document.querySelectorAll('#lc-sv #number');
+          if (eles.length > 0) {
+            eles.forEach((el,index,array)=>{
+              el.innerText = record.times + 1;
+              if (pvCtn) {
+                pvCtn.style.display = 'inline';
+              }
+            })
+          }
+        });
+        getterArr.push(pvGetter);
+      }
+
+      // 请求 UV 并自增
+      var uvCtn = document.querySelector('#lc-uv');
+      if (uvCtn || enableIncr) {
+        var uvGetter = this.getRecord(Counter, 'http://www.postman.life' + '/#lc-uv', 'Visitors').then((record) => {
+          var vuv = this.validUV();
+          vuv && incrArr.push(this.buildIncrement(record.objectId))
+          var eles = document.querySelectorAll('#lc-uv #number');
+          if (eles.length > 0) {
+            eles.forEach((el,index,array)=>{
+              el.innerText = record.times + (vuv ? 1 : 0);
+              if (uvCtn) {
+                uvCtn.style.display = 'inline';
+              }
+            })
+          }
+        });
+        getterArr.push(uvGetter);
+      }
+
+      // 请求文章的浏览数，如果是当前页面就自增
+      var allPV = document.querySelectorAll('#lc-pv');
+      if (allPV.length > 0 || enableIncr) {
+        for (i = 0; i < allPV.length; i++) {
+          let pv = allPV[i];
+          let title = pv.getAttribute('data-title');
+          var url = 'http://www.postman.life' + pv.getAttribute('data-path');
+          if (url) {
+            var viewGetter = this.getRecord(Counter, url, title).then((record) => {
+              // 是当前页面就自增
+              let curPath = window.location.pathname;
+              if (curPath.includes('index.html')) {
+                curPath = curPath.substring(0, curPath.lastIndexOf('index.html'));
+              }
+              if (pv.getAttribute('data-path') == curPath) {
+                incrArr.push(this.buildIncrement(record.objectId));
+              }
+              if (pv) {
+                var ele = pv.querySelector('#lc-pv #number');
+                if (ele) {
+                  if (pv.getAttribute('data-path') == curPath) {
+                    ele.innerText = (record.times || 0) + 1;
+                  } else {
+                    ele.innerText = record.times || 0;
+                  }
+                  pv.style.display = 'inline';
+                }
+              }
+            });
+            getterArr.push(viewGetter);
+          }
+        }
+      }
+
+      // 如果启动计数自增，批量发起自增请求
+      if (enableIncr) {
+        Promise.all(getterArr).then(() => {
+          incrArr.length > 0 && this.increment(Counter, incrArr);
+        })
+      }
+
+    },
+
+
+    fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${ api_server }/1.1${ url }`, {
+          method,
+          headers: {
+            'X-LC-Id': this.app_id,
+            'X-LC-Key': this.app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      this.addCount(Counter);
+    },
+
+    refreshCounter() {
+      var api_server = this.app_id.slice(-9) !== '-MdYXbMMI' ? this.custom_api_server : `https://${ this.app_id.slice(0, 8).toLowerCase() }.api.lncldglobal.com`;
+      if (api_server) {
+        this.fetchData(api_server);
+      } else {
+        fetch('https://app-router.leancloud.cn/2/route?appId=' + this.app_id)
+          .then(resp => resp.json())
+          .then(({api_server}) => {
+            this.fetchData('https://' + api_server);
+          });
+      }
+    }
+
+  };
+
+  LCCounter.refreshCounter();
+
+  document.addEventListener('pjax:complete', function () {
+    LCCounter.refreshCounter();
+  });
+</script>
+
+
+
+
+  <script>
+const rootElement = document.documentElement;
+const darkModeStorageKey = "user-color-scheme";
+const rootElementDarkModeAttributeName = "data-user-color-scheme";
+
+const setLS = (k, v) => {
+    localStorage.setItem(k, v);
+};
+
+const removeLS = (k) => {
+    localStorage.removeItem(k);
+};
+
+const getLS = (k) => {
+    return localStorage.getItem(k);
+};
+
+const getModeFromCSSMediaQuery = () => {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+};
+
+const resetRootDarkModeAttributeAndLS = () => {
+  rootElement.removeAttribute(rootElementDarkModeAttributeName);
+  removeLS(darkModeStorageKey);
+};
+
+const validColorModeKeys = {
+  dark: true,
+  light: true,
+};
+
+const applyCustomDarkModeSettings = (mode) => {
+  const currentSetting = mode || getLS(darkModeStorageKey);
+
+  if (currentSetting === getModeFromCSSMediaQuery()) {
+    resetRootDarkModeAttributeAndLS();
+  } else if (validColorModeKeys[currentSetting]) {
+    rootElement.setAttribute(rootElementDarkModeAttributeName, currentSetting);
+  } else {
+    resetRootDarkModeAttributeAndLS();
+  }
+};
+
+const invertDarkModeObj = {
+  dark: "light",
+  light: "dark",
+};
+
+/**
+ * get target mode
+ */
+const toggleCustomDarkMode = () => {
+  let currentSetting = getLS(darkModeStorageKey);
+
+  if (validColorModeKeys[currentSetting]) {
+    currentSetting = invertDarkModeObj[currentSetting];
+  } else if (currentSetting === null) {
+    currentSetting = invertDarkModeObj[getModeFromCSSMediaQuery()];
+  } else {
+    return;
+  }
+  setLS(darkModeStorageKey, currentSetting);
+  return currentSetting;
+};
+
+/**
+ * bind click event for toggle button
+ */
+var btn=$("#wrapper .toggle-mode-btn,#rightmenu-wrapper .toggle-mode-btn");
+function bindToggleButton() {
+    btn.on('click',(e) => {
+      const mode = toggleCustomDarkMode();
+      applyCustomDarkModeSettings(mode);
+    });
+}
+
+applyCustomDarkModeSettings();
+document.addEventListener("DOMContentLoaded", bindToggleButton);
+volantis.pjax.push(bindToggleButton);
+volantis.pjax.send(()=>{
+	btn.unbind('click');
+},'toggle-mode-btn-unbind');
+</script>
+
+
+
+
+
+
+
+
+<script>
+function listennSidebarTOC() {
+  const navItems = document.querySelectorAll(".toc li");
+  if (!navItems.length) return;
+  const sections = [...navItems].map((element) => {
+    const link = element.querySelector(".toc-link");
+    const target = document.getElementById(
+      decodeURI(link.getAttribute("href")).replace("#", "")
+    );
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      window.scrollTo({
+		top: target.offsetTop + 100,
+		
+		behavior: "smooth"
+		
+	  });
+    });
+    return target;
+  });
+
+  function activateNavByIndex(target) {
+    if (target.classList.contains("active-current")) return;
+
+    document.querySelectorAll(".toc .active").forEach((element) => {
+      element.classList.remove("active", "active-current");
+    });
+    target.classList.add("active", "active-current");
+    let parent = target.parentNode;
+    while (!parent.matches(".toc")) {
+      if (parent.matches("li")) parent.classList.add("active");
+      parent = parent.parentNode;
+    }
+  }
+
+  function findIndex(entries) {
+    let index = 0;
+    let entry = entries[index];
+    if (entry.boundingClientRect.top > 0) {
+      index = sections.indexOf(entry.target);
+      return index === 0 ? 0 : index - 1;
+    }
+    for (; index < entries.length; index++) {
+      if (entries[index].boundingClientRect.top <= 0) {
+        entry = entries[index];
+      } else {
+        return sections.indexOf(entry.target);
+      }
+    }
+    return sections.indexOf(entry.target);
+  }
+
+  function createIntersectionObserver(marginTop) {
+    marginTop = Math.floor(marginTop + 10000);
+    let intersectionObserver = new IntersectionObserver(
+      (entries, observe) => {
+        let scrollHeight = document.documentElement.scrollHeight + 100;
+        if (scrollHeight > marginTop) {
+          observe.disconnect();
+          createIntersectionObserver(scrollHeight);
+          return;
+        }
+        let index = findIndex(entries);
+        activateNavByIndex(navItems[index]);
+      },
+      {
+        rootMargin: marginTop + "px 0px -100% 0px",
+        threshold: 0,
+      }
+    );
+    sections.forEach((element) => {
+      element && intersectionObserver.observe(element);
+    });
+  }
+  createIntersectionObserver(document.documentElement.scrollHeight);
+}
+
+document.addEventListener("DOMContentLoaded", listennSidebarTOC);
+document.addEventListener("pjax:success", listennSidebarTOC);
+</script>
+
+<!-- more -->
+
+ 
+	   
+	    
+
+
+<script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js"></script>
+
+
+<script>
+    var pjax;
+    document.addEventListener('DOMContentLoaded', function () {
+      pjax = new Pjax({
+        elements: 'a[href]:not([href^="#"]):not([href="javascript:void(0)"]):not([pjax-fancybox])',
+        selectors: [
+          "title",
+          
+          "#pjax-container",
+          "#pjax-header-nav-list"
+        ],
+        cacheBust: false,   // url 地址追加时间戳，用以避免浏览器缓存
+        timeout: 5000
+      });
+    });
+
+    document.addEventListener('pjax:send', function (e) {
+      //window.stop(); // 相当于点击了浏览器的停止按钮
+
+      try {
+        var currentUrl = window.location.pathname;
+        var targetUrl = e.triggerElement.href;
+        var banUrl = [""];
+        if (banUrl[0] != "") {
+          banUrl.forEach(item => {
+            if(currentUrl.indexOf(item) != -1 || targetUrl.indexOf(item) != -1) {
+              window.location.href = targetUrl;
+            }
+          });
+        }
+      } catch (error) {}
+
+      window.subData = null; // 移除标题（用于一二级导航栏切换处）
+
+      volantis.$switcher.removeClass('active'); // 关闭移动端激活的搜索框
+      volantis.$header.removeClass('z_search-open'); // 关闭移动端激活的搜索框
+      volantis.$wrapper.removeClass('sub'); // 跳转页面时关闭二级导航
+
+      // 解绑事件 避免重复监听
+      volantis.$topBtn.unbind('click');
+      $('.menu a').unbind('click');
+      $(window).unbind('resize');
+      $(window).unbind('scroll');
+      $(document).unbind('scroll');
+      $(document).unbind('click');
+      $('body').unbind('click');
+	  // 使用 volantis.pjax.send 方法传入pjax:send回调函数 参见layout/_partial/scripts/global.ejs
+	  volantis.pjax.method.send.start();
+    });
+
+    document.addEventListener('pjax:complete', function () {
+      $('.nav-main').find('.list-v').not('.menu-phone').removeAttr("style",""); // 移除小尾巴的移除
+      $('.menu-phone.list-v').removeAttr("style",""); // 移除小尾巴的移除
+      $('script[data-pjax], .pjax-reload script').each(function () {
+        $(this).parent().append($(this).remove());
+      });
+      try{
+		// 使用 volantis.pjax.push 方法传入重载函数 参见layout/_partial/scripts/global.ejs
+		volantis.pjax.method.complete.start();
+      } catch (e) {
+        console.log(e);
+      }
+    });
+
+    document.addEventListener('pjax:error', function (e) {
+	  // 使用 volantis.pjax.error 方法传入pjax:error回调函数 参见layout/_partial/scripts/global.ejs
+	  volantis.pjax.method.error.start();
+      window.location.href = e.triggerElement.href;
+    });
+</script>
+ 
+	  
+    </div>
+  </body>
 </html>
