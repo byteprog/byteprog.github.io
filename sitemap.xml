@@ -9,6 +9,13 @@
   </url>
   
   <url>
+    <loc>http://www.postman.life/2021/06/14/ElasticSearch%E5%B8%B8%E7%94%A8%E6%8C%87%E4%BB%A4/</loc>
+    
+    <lastmod>2021-06-14</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://www.postman.life/2021/06/14/Linux%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</loc>
     
     <lastmod>2021-06-14</lastmod>
@@ -111,7 +118,7 @@
 
   
   <url>
-    <loc>http://www.postman.life/categories/Mysql/</loc>
+    <loc>http://www.postman.life/categories/ElasticSearch/</loc>
     <lastmod>2021-06-14</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -119,6 +126,13 @@
   
   <url>
     <loc>http://www.postman.life/categories/Linux/</loc>
+    <lastmod>2021-06-14</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>http://www.postman.life/categories/Mysql/</loc>
     <lastmod>2021-06-14</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
