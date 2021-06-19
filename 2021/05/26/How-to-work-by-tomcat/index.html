@@ -485,7 +485,7 @@ if (/*@cc_on!@*/false || (!!window.MSInputMethodContext && !!document.documentMo
 
   
   
-  <h5 id="分析Tomcat源码的第一步"><a href="#分析Tomcat源码的第一步" class="headerlink" title="分析Tomcat源码的第一步"></a>分析Tomcat源码的第一步</h5><h5 id="首先让我们弄懂Tomcat架构体系"><a href="#首先让我们弄懂Tomcat架构体系" class="headerlink" title="首先让我们弄懂Tomcat架构体系"></a>首先让我们弄懂Tomcat架构体系</h5><p>![](/How-to-work-by-tomcat/Tomcat architecture.jpg)</p>
+  <h5 id="分析Tomcat源码的第一步"><a href="#分析Tomcat源码的第一步" class="headerlink" title="分析Tomcat源码的第一步"></a>分析Tomcat源码的第一步</h5><h5 id="首先让我们弄懂Tomcat架构体系"><a href="#首先让我们弄懂Tomcat架构体系" class="headerlink" title="首先让我们弄懂Tomcat架构体系"></a>首先让我们弄懂Tomcat架构体系</h5><p>![](How-to-work-by-tomcat/Tomcat architecture.jpg)</p>
 <h5 id="The-Server："><a href="#The-Server：" class="headerlink" title="The Server："></a>The Server：</h5><p>Tomcat它自身，属于Web Server的一个实例(instance)。属于最上层的组件。可以通过端口打开/关闭，可以切换成Debug模式。在JVM中，只能创建一个Server Instance。通过端口的设置用以达到在一台机子运行不同端口的Server，每台Server相互独立，有自己的应用配置，应用之间不会造成相互的影响。</p>
 <h5 id="Service："><a href="#Service：" class="headerlink" title="Service："></a>Service：</h5><p>Service是Engine容器的上层组件，封装了多个接受请求的Connector（连接器）和一个Engine容器。在Catalina（**<em>Servlet**</em> ）容器里中，它通过Http处理Servlet的请求并决定将请求传递到虚拟主机还是上下文(Context)。</p>
 <p>每个Service代表一组Connector和一个Container（容器），用以管理客户端和服务器之间的连接。这些容器接受连接器的请求并处理这些请求。容器包含Web应用程序。 它负责接受请求，将请求路由到指定的Web应用程序和特定资源，并返回请求处理的结果。 连接器位于发出请求的客户端和容器之间，可以提供一些服务，例如SSL支持。</p>
@@ -669,10 +669,10 @@ if (/*@cc_on!@*/false || (!!window.MSInputMethodContext && !!document.documentMo
     <div class='new-meta-box'>
       
         
-          <div class="new-meta-item date" itemprop="dateUpdated" datetime="2021-05-26T00:19:38+08:00">
+          <div class="new-meta-item date" itemprop="dateUpdated" datetime="2021-06-19T17:43:50+08:00">
   <a class='notlink'>
     <i class="fas fa-edit fa-fw" aria-hidden="true"></i>
-    <p>更新于：2021年5月26日</p>
+    <p>更新于：2021年6月19日</p>
   </a>
 </div>
 
