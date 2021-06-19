@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://www.postman.life/friends/index.html</loc>
+    
+    <lastmod>2021-06-19</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://www.postman.life/2021/05/26/How-to-work-by-tomcat/</loc>
     
     <lastmod>2021-06-19</lastmod>
@@ -38,13 +45,6 @@
   
   <url>
     <loc>http://www.postman.life/2020/11/17/MySQL%E5%BF%85%E7%9F%A5%E5%BF%85%E4%BC%9A%E7%AC%94%E8%AE%B0/</loc>
-    
-    <lastmod>2021-06-14</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://www.postman.life/friends/index.html</loc>
     
     <lastmod>2021-06-14</lastmod>
     
@@ -118,14 +118,14 @@
 
   
   <url>
-    <loc>http://www.postman.life/categories/Linux/</loc>
+    <loc>http://www.postman.life/categories/ElasticSearch/</loc>
     <lastmod>2021-06-19</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
-    <loc>http://www.postman.life/categories/ElasticSearch/</loc>
+    <loc>http://www.postman.life/categories/Linux/</loc>
     <lastmod>2021-06-19</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
